@@ -1,0 +1,12 @@
+# Data import artifacts — already imported into the database; contain client PII.
+# Kept out of version control. (Preserved locally; the source of truth is Supabase.)
+/data/
+/supabase/import.sql
+
+# Safety nets (admin/.gitignore already handles these inside the app)
+**/node_modules/
+**/.next/
+**/out/
+**/.env
+**/.env.*
+!**/.env.example
