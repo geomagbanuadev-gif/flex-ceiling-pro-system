@@ -120,7 +120,7 @@ export function QuoteForm({
     });
   }
 
-  const inp = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-900";
+  const inp = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-colors focus:border-navy focus:ring-1 focus:ring-navy";
   const lbl = "text-xs font-medium text-slate-600";
 
   return (
@@ -228,7 +228,7 @@ export function QuoteForm({
 
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex justify-end gap-3">
-        <button type="button" disabled={pending} onClick={submit} className="rounded-lg bg-slate-900 px-6 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60">
+        <button type="button" disabled={pending} onClick={submit} className="rounded-lg bg-navy px-6 py-2.5 text-sm font-medium text-white hover:bg-navy-700 disabled:opacity-60">
           {pending ? "Saving…" : "Save quotation"}
         </button>
       </div>
