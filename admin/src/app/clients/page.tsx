@@ -33,8 +33,8 @@ async function ClientsTable({ sp }: { sp: Record<string, string | string[] | und
   const str = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
   const q = str("q");
   const page = Math.max(1, parseInt(str("page")) || 1);
-  const sizeRaw = parseInt(str("size")) || 25;
-  const pageSize = PAGE_SIZES.includes(sizeRaw) ? sizeRaw : 25;
+  const sizeRaw = parseInt(str("size")) || 20;
+  const pageSize = PAGE_SIZES.includes(sizeRaw) ? sizeRaw : 20;
   const fromIdx = (page - 1) * pageSize;
 
   const supabase = await createClient();
