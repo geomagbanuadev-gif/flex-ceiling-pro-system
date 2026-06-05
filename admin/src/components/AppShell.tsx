@@ -1,13 +1,14 @@
 import Link from "next/link";
-import { createClient } from "@/utils/supabase/server";
 import { SignOutButton } from "./SignOutButton";
 import { cn } from "@/utils/cn";
+import { getProfile } from "@/utils/profile";
 
 const NAV = [
-  { href: "/", label: "Dashboard", key: "dashboard" },
-  { href: "/quotes", label: "Documents", key: "documents" },
-  { href: "/clients", label: "Clients", key: "clients" },
-  { href: "/settings", label: "Settings", key: "settings" },
+  { href: "/", label: "Dashboard", key: "dashboard", superOnly: false },
+  { href: "/quotes", label: "Documents", key: "documents", superOnly: false },
+  { href: "/clients", label: "Clients", key: "clients", superOnly: false },
+  { href: "/settings", label: "Settings", key: "settings", superOnly: true },
+  { href: "/users", label: "Users", key: "users", superOnly: true },
 ];
 
 export async function AppShell({
@@ -21,10 +22,25 @@ export async function AppShell({
   action?: React.ReactNode;
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const profile = await getProfile();
+
+  // No active profile → access not granted / revoked
+  if (!profile || !profile.active) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#eef2f7] p-6">
+        <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <p className="text-base font-semibold text-slate-900">Access not enabled</p>
+          <p className="mt-2 text-sm text-slate-500">
+            Your account {profile?.email ? `(${profile.email}) ` : ""}does not have access yet. Please ask a super user to enable it.
+          </p>
+          <div className="mt-5 flex justify-center"><SignOutButton /></div>
+        </div>
+      </div>
+    );
+  }
+
+  const isSuper = profile.role === "super";
+  const nav = NAV.filter((n) => !n.superOnly || isSuper);
 
   return (
     <div className="flex h-screen flex-col">
@@ -39,7 +55,7 @@ export async function AppShell({
               <span className="text-sm font-semibold tracking-tight">FlexCeiling Pro</span>
             </Link>
             <nav className="hidden items-center gap-1 md:flex">
-              {NAV.map((n) => (
+              {nav.map((n) => (
                 <Link
                   key={n.key}
                   href={n.href}
@@ -56,7 +72,9 @@ export async function AppShell({
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <span className="hidden text-xs text-white/55 sm:block">{user?.email}</span>
+            <Link href="/account" className="hidden text-xs text-white/55 hover:text-white sm:block" title="Account & password">
+              {profile.email} <span className="text-white/30">·</span> <span className="capitalize">{profile.role}</span>
+            </Link>
             <SignOutButton />
           </div>
         </div>

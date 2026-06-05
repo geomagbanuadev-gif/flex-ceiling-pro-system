@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { QuoteForm } from "@/components/QuoteForm";
 import { AppShell } from "@/components/AppShell";
+import { getProfile, canSeeQuotes } from "@/utils/profile";
 
 function nextQuoteNumber(numbers: string[], prefix: string) {
   let max = 0;
@@ -13,6 +15,9 @@ function nextQuoteNumber(numbers: string[], prefix: string) {
 }
 
 export default async function NewQuotePage(props: PageProps<"/quotes/new">) {
+  const me = await getProfile();
+  if (me && !canSeeQuotes(me.role)) redirect("/quotes");
+
   const sp = await props.searchParams;
   const presetId = typeof sp.client === "string" ? sp.client : null;
 

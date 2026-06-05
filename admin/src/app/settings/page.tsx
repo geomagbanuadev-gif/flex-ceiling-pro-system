@@ -1,8 +1,13 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { SettingsForm } from "@/components/SettingsForm";
+import { getProfile } from "@/utils/profile";
 
 export default async function SettingsPage() {
+  const me = await getProfile();
+  if (!me || me.role !== "super") redirect("/");
+
   const supabase = await createClient();
   const { data: settings } = await supabase.from("company_settings").select("*").eq("id", 1).maybeSingle();
 

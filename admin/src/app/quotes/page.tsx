@@ -6,26 +6,33 @@ import { DocumentsFilters } from "@/components/DocumentsFilters";
 import { Pagination, PAGE_SIZES } from "@/components/Pagination";
 import { TableSkeleton } from "@/components/TableSkeleton";
 import { newInvoice } from "@/app/quotes/actions";
+import { getProfile, canSeeQuotes, canSeeInvoices } from "@/utils/profile";
 
 const money = (v: number | null) => (v == null ? "—" : "AED " + Number(v).toLocaleString());
 const SORT_COLS = ["doc_date", "number", "grand_total", "client_name"];
 
 export default async function DocumentsPage(props: PageProps<"/quotes">) {
   const sp = await props.searchParams;
+  const me = await getProfile();
+  const role = me?.role ?? "super";
   return (
     <AppShell
       active="documents"
       title="Documents"
       action={
         <div className="flex gap-2">
-          <form action={newInvoice}>
-            <button type="submit" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">
-              + Tax Invoice
-            </button>
-          </form>
-          <Link href="/quotes/new" className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy-700">
-            + New Quotation
-          </Link>
+          {canSeeInvoices(role) && (
+            <form action={newInvoice}>
+              <button type="submit" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">
+                + Tax Invoice
+              </button>
+            </form>
+          )}
+          {canSeeQuotes(role) && (
+            <Link href="/quotes/new" className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy-700">
+              + New Quotation
+            </Link>
+          )}
         </div>
       }
     >

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { amountInWords } from "@/utils/amountInWords";
+import { getProfile, canSeeInvoices } from "@/utils/profile";
 
 const QUOTE_STATUSES = ["draft", "sent", "won", "lost"];
 const INVOICE_STATUSES = ["draft", "sent", "paid", "lost"];
@@ -334,6 +335,9 @@ export async function newInvoice() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
+
+  const me = await getProfile();
+  if (me && !canSeeInvoices(me.role)) throw new Error("Not authorized to create invoices");
 
   const { data: settings } = await supabase.from("company_settings").select(`invoice_prefix, ${SUPPLIER_COLS}`).eq("id", 1).maybeSingle();
   const prefix = settings?.invoice_prefix ?? "INV-";
