@@ -24,6 +24,21 @@ function snapshotOf(s: Record<string, unknown> | null | undefined) {
   return out;
 }
 
+// Insert a document; if the supplier_snapshot column hasn't been added yet,
+// retry without it so document creation never hard-fails.
+async function insertDoc(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  row: Record<string, unknown>
+) {
+  let res = await supabase.from("documents").insert(row).select("id").single();
+  if (res.error && /supplier_snapshot/i.test(res.error.message || "")) {
+    const rest = { ...row };
+    delete rest.supplier_snapshot;
+    res = await supabase.from("documents").insert(rest).select("id").single();
+  }
+  return res;
+}
+
 export type QuoteItemInput = {
   description: string;
   area: number | null;
@@ -125,11 +140,7 @@ export async function saveQuote(p: QuotePayload) {
   } else {
     // new document: freeze the current company details onto it
     const { data: settings } = await supabase.from("company_settings").select(SUPPLIER_COLS).eq("id", 1).maybeSingle();
-    const { data: doc, error } = await supabase
-      .from("documents")
-      .insert({ ...docFields, status: "draft", supplier_snapshot: snapshotOf(settings), created_by: user.id })
-      .select("id")
-      .single();
+    const { data: doc, error } = await insertDoc(supabase, { ...docFields, status: "draft", supplier_snapshot: snapshotOf(settings), created_by: user.id });
     if (error) throw new Error(`Could not create document: ${error.message}`);
     docId = doc.id;
   }
@@ -186,32 +197,28 @@ export async function convertToInvoice(quoteId: string) {
   }
   const number = prefix + String(max + 1).padStart(4, "0");
 
-  const { data: inv, error } = await supabase
-    .from("documents")
-    .insert({
-      type: "invoice",
-      number,
-      doc_date: new Date().toISOString().slice(0, 10),
-      client_id: quote.client_id,
-      client_name: quote.client_name,
-      client_trn: quote.client_trn,
-      client_address: quote.client_address,
-      client_email: quote.client_email,
-      contact_person: quote.contact_person,
-      contact_phone: quote.contact_phone,
-      reference: quote.reference,
-      status: "draft",
-      subtotal: quote.subtotal,
-      vat_rate: quote.vat_rate,
-      vat_amount: quote.vat_amount,
-      grand_total: quote.grand_total,
-      amount_in_words: amountInWords(quote.grand_total),
-      converted_from: quoteId,
-      supplier_snapshot: snapshotOf(settings),
-      created_by: user.id,
-    })
-    .select("id")
-    .single();
+  const { data: inv, error } = await insertDoc(supabase, {
+    type: "invoice",
+    number,
+    doc_date: new Date().toISOString().slice(0, 10),
+    client_id: quote.client_id,
+    client_name: quote.client_name,
+    client_trn: quote.client_trn,
+    client_address: quote.client_address,
+    client_email: quote.client_email,
+    contact_person: quote.contact_person,
+    contact_phone: quote.contact_phone,
+    reference: quote.reference,
+    status: "draft",
+    subtotal: quote.subtotal,
+    vat_rate: quote.vat_rate,
+    vat_amount: quote.vat_amount,
+    grand_total: quote.grand_total,
+    amount_in_words: amountInWords(quote.grand_total),
+    converted_from: quoteId,
+    supplier_snapshot: snapshotOf(settings),
+    created_by: user.id,
+  });
   if (error) throw new Error(error.message);
 
   if (items?.length) {
@@ -280,34 +287,30 @@ export async function duplicateDocument(docId: string) {
   }
   const number = prefix + String(max + 1).padStart(4, "0");
 
-  const { data: copy, error } = await supabase
-    .from("documents")
-    .insert({
-      type,
-      number,
-      doc_date: new Date().toISOString().slice(0, 10),
-      client_id: src.client_id,
-      client_name: src.client_name,
-      client_trn: src.client_trn,
-      client_address: src.client_address,
-      client_email: src.client_email,
-      contact_person: src.contact_person,
-      contact_phone: src.contact_phone,
-      reference: src.reference,
-      status: "draft",
-      payment_terms: src.payment_terms,
-      validity_days: src.validity_days,
-      subtotal: src.subtotal,
-      vat_rate: src.vat_rate,
-      vat_amount: src.vat_amount,
-      grand_total: src.grand_total,
-      amount_in_words: type === "invoice" ? amountInWords(src.grand_total) : null,
-      notes: src.notes,
-      supplier_snapshot: snapshotOf(settings),
-      created_by: user.id,
-    })
-    .select("id")
-    .single();
+  const { data: copy, error } = await insertDoc(supabase, {
+    type,
+    number,
+    doc_date: new Date().toISOString().slice(0, 10),
+    client_id: src.client_id,
+    client_name: src.client_name,
+    client_trn: src.client_trn,
+    client_address: src.client_address,
+    client_email: src.client_email,
+    contact_person: src.contact_person,
+    contact_phone: src.contact_phone,
+    reference: src.reference,
+    status: "draft",
+    payment_terms: src.payment_terms,
+    validity_days: src.validity_days,
+    subtotal: src.subtotal,
+    vat_rate: src.vat_rate,
+    vat_amount: src.vat_amount,
+    grand_total: src.grand_total,
+    amount_in_words: type === "invoice" ? amountInWords(src.grand_total) : null,
+    notes: src.notes,
+    supplier_snapshot: snapshotOf(settings),
+    created_by: user.id,
+  });
   if (error) throw new Error(error.message);
 
   if (items?.length) {
@@ -349,11 +352,7 @@ export async function newInvoice() {
   }
   const number = prefix + String(max + 1).padStart(4, "0");
 
-  const { data: inv, error } = await supabase
-    .from("documents")
-    .insert({ type: "invoice", number, doc_date: new Date().toISOString().slice(0, 10), status: "draft", vat_rate: 5, supplier_snapshot: snapshotOf(settings), created_by: user.id })
-    .select("id")
-    .single();
+  const { data: inv, error } = await insertDoc(supabase, { type: "invoice", number, doc_date: new Date().toISOString().slice(0, 10), status: "draft", vat_rate: 5, supplier_snapshot: snapshotOf(settings), created_by: user.id });
   if (error) throw new Error(error.message);
   redirect(`/quotes/${inv.id}/edit`);
 }
