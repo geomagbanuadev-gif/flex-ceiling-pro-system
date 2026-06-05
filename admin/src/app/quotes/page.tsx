@@ -17,6 +17,7 @@ export default async function DocumentsPage(props: PageProps<"/quotes">) {
   const me = await getProfile();
   const role = me?.role ?? "super";
   const typeParam = typeof sp.type === "string" ? sp.type : "";
+  const lockedType = typeParam === "invoice" || typeParam === "quote" ? typeParam : undefined;
   const active = typeParam === "invoice" ? "invoices" : "quotes";
   const title = typeParam === "invoice" ? "Tax Invoices" : typeParam === "quote" ? "Quotations" : "Documents";
   return (
@@ -25,14 +26,14 @@ export default async function DocumentsPage(props: PageProps<"/quotes">) {
       title={title}
       action={
         <div className="flex gap-2">
-          {canSeeInvoices(role) && (
+          {canSeeInvoices(role) && typeParam !== "quote" && (
             <form action={newInvoice}>
               <button type="submit" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">
                 + Tax Invoice
               </button>
             </form>
           )}
-          {canSeeQuotes(role) && (
+          {canSeeQuotes(role) && typeParam !== "invoice" && (
             <Link href="/quotes/new" className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy-700">
               + New Quotation
             </Link>
@@ -41,7 +42,7 @@ export default async function DocumentsPage(props: PageProps<"/quotes">) {
       }
     >
       <Suspense fallback={<div className="mb-5 h-10 max-w-sm animate-pulse rounded-lg bg-slate-200" />}>
-        <FilterBar />
+        <FilterBar lockedType={lockedType} />
       </Suspense>
       <Suspense fallback={<TableSkeleton cols={6} rows={8} />}>
         <DocumentsTable sp={sp} />
@@ -50,10 +51,10 @@ export default async function DocumentsPage(props: PageProps<"/quotes">) {
   );
 }
 
-async function FilterBar() {
+async function FilterBar({ lockedType }: { lockedType?: string }) {
   const supabase = await createClient();
   const { data } = await supabase.from("clients").select("id, name").order("name");
-  return <DocumentsFilters clients={data ?? []} />;
+  return <DocumentsFilters clients={data ?? []} lockedType={lockedType} />;
 }
 
 async function DocumentsTable({ sp }: { sp: Record<string, string | string[] | undefined> }) {

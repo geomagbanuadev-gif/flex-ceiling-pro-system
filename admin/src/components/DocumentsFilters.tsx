@@ -12,11 +12,17 @@ const SORTS = [
   { v: "client_name", l: "Client" },
 ];
 
-export function DocumentsFilters({ clients = [] }: { clients?: { id: string; name: string }[] }) {
+export function DocumentsFilters({ clients = [], lockedType }: { clients?: { id: string; name: string }[]; lockedType?: string }) {
   const router = useRouter();
   const sp = useSearchParams();
   const [pending, start] = useTransition();
 
+  const basePath = lockedType ? `/quotes?type=${lockedType}` : "/quotes";
+  const statusOptions = lockedType === "invoice"
+    ? ["draft", "sent", "paid", "lost"]
+    : lockedType === "quote"
+      ? ["draft", "sent", "won", "lost", "imported"]
+      : STATUSES;
   const init = (k: string, d = "") => sp.get(k) ?? d;
   const [q, setQ] = useState(init("q"));
   const [type, setType] = useState(init("type"));
@@ -30,14 +36,14 @@ export function DocumentsFilters({ clients = [] }: { clients?: { id: string; nam
   const [dir, setDir] = useState(init("dir", "desc"));
   const [open, setOpen] = useState(Boolean(status || client || from || to || min || max));
 
-  const activeCount = [type, status, client, from, to, min, max].filter(Boolean).length;
+  const activeCount = [lockedType ? "" : type, status, client, from, to, min, max].filter(Boolean).length;
 
   function apply(e?: React.FormEvent) {
     e?.preventDefault();
     const p = new URLSearchParams();
     const set = (k: string, v: string, def = "") => v && v !== def && p.set(k, v);
     set("q", q);
-    set("type", type);
+    set("type", lockedType || type);
     set("status", status);
     set("client", client);
     set("from", from);
@@ -50,7 +56,7 @@ export function DocumentsFilters({ clients = [] }: { clients?: { id: string; nam
   }
   function clearAll() {
     setQ(""); setType(""); setStatus(""); setClient(""); setFrom(""); setTo(""); setMin(""); setMax(""); setSort("doc_date"); setDir("desc");
-    start(() => router.push("/quotes"));
+    start(() => router.push(basePath));
   }
 
   const inp = "rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-navy focus:ring-1 focus:ring-navy";
@@ -63,11 +69,13 @@ export function DocumentsFilters({ clients = [] }: { clients?: { id: string; nam
           <input className={inp + " w-full pl-9"} placeholder="Search client or number…" value={q} onChange={(e) => setQ(e.target.value)} />
           <svg className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
         </div>
-        <select className={inp} value={type} onChange={(e) => setType(e.target.value)}>
-          <option value="">All types</option>
-          <option value="quote">Quotations</option>
-          <option value="invoice">Tax Invoices</option>
-        </select>
+        {!lockedType && (
+          <select className={inp} value={type} onChange={(e) => setType(e.target.value)}>
+            <option value="">All types</option>
+            <option value="quote">Quotations</option>
+            <option value="invoice">Tax Invoices</option>
+          </select>
+        )}
         <button type="button" onClick={() => setOpen((v) => !v)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
           Filters
           {activeCount > 0 && <span className="rounded-full bg-navy px-1.5 text-xs font-semibold text-white">{activeCount}</span>}
@@ -93,7 +101,7 @@ export function DocumentsFilters({ clients = [] }: { clients?: { id: string; nam
             <label className={lbl}>Status</label>
             <select className={inp + " w-full"} value={status} onChange={(e) => setStatus(e.target.value)}>
               <option value="">Any status</option>
-              {STATUSES.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}
+              {statusOptions.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}
             </select>
           </div>
           <div>
