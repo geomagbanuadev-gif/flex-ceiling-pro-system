@@ -28,7 +28,7 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
 
   return (
     <AppShell
-      active="documents"
+      active={doc.type === "invoice" ? "invoices" : "quotes"}
       title={`${doc.type === "invoice" ? "Tax Invoice" : "Quotation"} ${doc.number}`}
       action={
         <div className="flex gap-2">

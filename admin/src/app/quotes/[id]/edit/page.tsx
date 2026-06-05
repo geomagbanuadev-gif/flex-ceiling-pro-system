@@ -48,7 +48,7 @@ export default async function EditDocumentPage(props: PageProps<"/quotes/[id]/ed
 
   return (
     <AppShell
-      active="documents"
+      active={doc.type === "invoice" ? "invoices" : "quotes"}
       title={`Edit ${docWord} ${doc.number}`}
       action={<Link href={`/quotes/${id}`} className="text-sm font-medium text-navy-600 hover:underline">← Cancel</Link>}
     >

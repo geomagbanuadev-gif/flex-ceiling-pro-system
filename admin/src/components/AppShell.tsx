@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { SignOutButton } from "./SignOutButton";
 import { cn } from "@/utils/cn";
-import { getProfile } from "@/utils/profile";
+import { getProfile, canSeeQuotes, canSeeInvoices } from "@/utils/profile";
 
-const NAV = [
-  { href: "/", label: "Dashboard", key: "dashboard", superOnly: false },
-  { href: "/quotes", label: "Documents", key: "documents", superOnly: false },
-  { href: "/clients", label: "Clients", key: "clients", superOnly: false },
+type NavItem = { href: string; label: string; key: string; superOnly?: boolean; need?: "quotes" | "invoices" };
+const NAV: NavItem[] = [
+  { href: "/", label: "Dashboard", key: "dashboard" },
+  { href: "/quotes?type=quote", label: "Quotes", key: "quotes", need: "quotes" },
+  { href: "/quotes?type=invoice", label: "Invoices", key: "invoices", need: "invoices" },
+  { href: "/clients", label: "Clients", key: "clients" },
   { href: "/settings", label: "Settings", key: "settings", superOnly: true },
   { href: "/users", label: "Users", key: "users", superOnly: true },
 ];
@@ -40,7 +42,12 @@ export async function AppShell({
   }
 
   const isSuper = profile.role === "super";
-  const nav = NAV.filter((n) => !n.superOnly || isSuper);
+  const nav = NAV.filter((n) => {
+    if (n.superOnly && !isSuper) return false;
+    if (n.need === "quotes" && !canSeeQuotes(profile.role)) return false;
+    if (n.need === "invoices" && !canSeeInvoices(profile.role)) return false;
+    return true;
+  });
 
   return (
     <div className="flex h-screen flex-col">

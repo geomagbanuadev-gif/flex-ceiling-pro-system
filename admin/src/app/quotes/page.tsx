@@ -16,10 +16,13 @@ export default async function DocumentsPage(props: PageProps<"/quotes">) {
   const sp = await props.searchParams;
   const me = await getProfile();
   const role = me?.role ?? "super";
+  const typeParam = typeof sp.type === "string" ? sp.type : "";
+  const active = typeParam === "invoice" ? "invoices" : "quotes";
+  const title = typeParam === "invoice" ? "Tax Invoices" : typeParam === "quote" ? "Quotations" : "Documents";
   return (
     <AppShell
-      active="documents"
-      title="Documents"
+      active={active}
+      title={title}
       action={
         <div className="flex gap-2">
           {canSeeInvoices(role) && (
