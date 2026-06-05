@@ -3,7 +3,8 @@ import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { ClientsSearch } from "@/components/ClientsSearch";
-import { Pagination, PAGE_SIZES } from "@/components/Pagination";
+import { Pagination } from "@/components/Pagination";
+import { PAGE_SIZES } from "@/utils/pagination";
 import { TableSkeleton } from "@/components/TableSkeleton";
 
 const money = (v: number) => "AED " + Number(v).toLocaleString();

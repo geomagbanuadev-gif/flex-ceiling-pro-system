@@ -3,8 +3,7 @@
 import { useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Spinner } from "./Spinner";
-
-export const PAGE_SIZES = [10, 20, 50, 100];
+import { PAGE_SIZES } from "@/utils/pagination";
 
 export function Pagination({ page, pageSize, total }: { page: number; pageSize: number; total: number }) {
   const router = useRouter();
