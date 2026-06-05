@@ -10,15 +10,17 @@ export default async function ClientDetailPage(props: PageProps<"/clients/[id]">
   const { id } = await props.params;
   const supabase = await createClient();
 
-  const [clientRes, docsRes] = await Promise.all([
+  const [clientRes, docsRes, statsRes] = await Promise.all([
     supabase.from("clients").select("*").eq("id", id).maybeSingle(),
-    supabase.from("documents").select("id, number, type, doc_date, grand_total, status").eq("client_id", id).order("doc_date", { ascending: false, nullsFirst: false }),
+    supabase.from("documents").select("id, number, type, doc_date, grand_total, status").eq("client_id", id).order("doc_date", { ascending: false, nullsFirst: false }).limit(10),
+    supabase.from("documents").select("grand_total", { count: "exact" }).eq("client_id", id),
   ]);
 
   const client = clientRes.data;
   if (!client) notFound();
   const docs = docsRes.data ?? [];
-  const totalValue = docs.reduce((s, d) => s + (Number(d.grand_total) || 0), 0);
+  const docCount = statsRes.count ?? docs.length;
+  const totalValue = (statsRes.data ?? []).reduce((s, d) => s + (Number(d.grand_total) || 0), 0);
 
   return (
     <AppShell
@@ -34,7 +36,7 @@ export default async function ClientDetailPage(props: PageProps<"/clients/[id]">
 
         <div className="lg:col-span-2">
           <div className="rounded-xl border border-slate-200 bg-white p-5">
-            <p className="text-3xl font-semibold text-slate-900">{docs.length}</p>
+            <p className="text-3xl font-semibold text-slate-900">{docCount}</p>
             <p className="text-sm text-slate-500">documents · {money(totalValue)} total</p>
             <Link href={`/quotes?client=${id}`} className="mt-3 inline-block text-sm font-medium text-navy-600 hover:underline">
               Filter documents by this client →
@@ -44,7 +46,10 @@ export default async function ClientDetailPage(props: PageProps<"/clients/[id]">
       </div>
 
       <section className="mt-8">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Documents for this client</h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Documents{docCount > 10 ? " · latest 10" : ""}</h2>
+          {docCount > 10 && <Link href={`/quotes?client=${id}`} className="text-sm font-medium text-navy-600 hover:underline">View all {docCount} →</Link>}
+        </div>
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
           <table className="w-full text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">

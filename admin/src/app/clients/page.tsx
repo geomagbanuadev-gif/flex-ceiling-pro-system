@@ -1,27 +1,51 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { ClientsSearch } from "@/components/ClientsSearch";
+import { Pagination, PAGE_SIZES } from "@/components/Pagination";
+import { TableSkeleton } from "@/components/TableSkeleton";
 
-const PAGE_SIZE = 25;
 const money = (v: number) => "AED " + Number(v).toLocaleString();
 
 export default async function ClientsPage(props: PageProps<"/clients">) {
   const sp = await props.searchParams;
-  const q = typeof sp.q === "string" ? sp.q : "";
-  const page = Math.max(1, parseInt(typeof sp.page === "string" ? sp.page : "") || 1);
-  const fromIdx = (page - 1) * PAGE_SIZE;
+  return (
+    <AppShell
+      active="clients"
+      title="Clients"
+      action={
+        <Link href="/clients/new" className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy-700">
+          + New Client
+        </Link>
+      }
+    >
+      <ClientsSearch />
+      <Suspense fallback={<TableSkeleton cols={5} rows={8} />}>
+        <ClientsTable sp={sp} />
+      </Suspense>
+    </AppShell>
+  );
+}
+
+async function ClientsTable({ sp }: { sp: Record<string, string | string[] | undefined> }) {
+  const str = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
+  const q = str("q");
+  const page = Math.max(1, parseInt(str("page")) || 1);
+  const sizeRaw = parseInt(str("size")) || 25;
+  const pageSize = PAGE_SIZES.includes(sizeRaw) ? sizeRaw : 25;
+  const fromIdx = (page - 1) * pageSize;
 
   const supabase = await createClient();
   let query = supabase
     .from("clients")
     .select("id, name, trn, email, contact_person, contact_phone", { count: "exact" })
     .order("name")
-    .range(fromIdx, fromIdx + PAGE_SIZE - 1);
+    .range(fromIdx, fromIdx + pageSize - 1);
   if (q) query = query.or(`name.ilike.%${q}%,contact_person.ilike.%${q}%`);
   const { data: clients, count } = await query;
 
-  // document counts + totals for the visible clients
+  // document counts + totals for the visible clients only
   const ids = (clients ?? []).map((c) => c.id);
   const stats = new Map<string, { n: number; total: number }>();
   if (ids.length) {
@@ -35,27 +59,8 @@ export default async function ClientsPage(props: PageProps<"/clients">) {
     }
   }
 
-  const total = count ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const pageHref = (p: number) => {
-    const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    params.set("page", String(p));
-    return `/clients?${params}`;
-  };
-
   return (
-    <AppShell
-      active="clients"
-      title="Clients"
-      action={
-        <Link href="/clients/new" className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy-700">
-          + New Client
-        </Link>
-      }
-    >
-      <ClientsSearch />
-
+    <>
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -88,17 +93,7 @@ export default async function ClientsPage(props: PageProps<"/clients">) {
           </tbody>
         </table>
       </div>
-
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs text-slate-500">{total} client{total === 1 ? "" : "s"}</p>
-        {totalPages > 1 && (
-          <nav className="flex items-center gap-1">
-            {page > 1 ? <Link href={pageHref(page - 1)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">‹ Prev</Link> : <span className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-300">‹ Prev</span>}
-            <span className="px-3 text-sm text-slate-600">Page {page} of {totalPages}</span>
-            {page < totalPages ? <Link href={pageHref(page + 1)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Next ›</Link> : <span className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-300">Next ›</span>}
-          </nav>
-        )}
-      </div>
-    </AppShell>
+      <Pagination page={page} pageSize={pageSize} total={count ?? 0} />
+    </>
   );
 }
