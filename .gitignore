@@ -2,6 +2,7 @@
 # Kept out of version control. (Preserved locally; the source of truth is Supabase.)
 /data/
 /supabase/import.sql
+/supabase/reimport.sql
 
 # Safety nets (admin/.gitignore already handles these inside the app)
 **/node_modules/
