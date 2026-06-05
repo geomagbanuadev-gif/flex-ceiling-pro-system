@@ -6,6 +6,7 @@ import { ConvertButton } from "@/components/ConvertButton";
 import { DuplicateButton } from "@/components/DuplicateButton";
 import { DeleteButton } from "@/components/DeleteButton";
 import { StatusControl } from "@/components/StatusControl";
+import { ShareButton } from "@/components/ShareButton";
 import { fmtDate } from "@/utils/format";
 
 const money = (v: number | null) =>
@@ -58,6 +59,7 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <ShareButton docId={id} docType={doc.type} initialToken={doc.share_token ?? null} />
           {doc.type === "quote" && <ConvertButton quoteId={id} />}
           <DuplicateButton docId={id} />
           <DeleteButton docId={id} label={`${doc.type === "invoice" ? "Tax Invoice" : "Quotation"} ${doc.number}`} />

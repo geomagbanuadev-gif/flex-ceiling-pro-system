@@ -246,6 +246,41 @@ export async function convertToInvoice(quoteId: string) {
   redirect(`/quotes/${inv.id}?flash=converted`);
 }
 
+/** Get (or create) a public share token for a document. RLS scopes which
+ *  documents the current user may share. */
+export async function getShareToken(docId: string): Promise<string> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: doc, error } = await supabase.from("documents").select("id, share_token").eq("id", docId).maybeSingle();
+  if (error && /share_token/i.test(error.message)) {
+    throw new Error("Sharing isn't set up yet — run the share_token migration in Supabase (see supabase/schema.sql).");
+  }
+  if (!doc) throw new Error("Document not found");
+  if (doc.share_token) return doc.share_token as string;
+
+  const token = (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, "");
+  const { error: upErr } = await supabase.from("documents").update({ share_token: token }).eq("id", docId);
+  if (upErr) throw new Error(upErr.message);
+  revalidatePath(`/quotes/${docId}`);
+  return token;
+}
+
+/** Revoke a public share link. */
+export async function disableShare(docId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { error } = await supabase.from("documents").update({ share_token: null }).eq("id", docId);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/quotes/${docId}`);
+}
+
 /** Change a document's status (validated against the doc type). */
 export async function updateStatus(docId: string, status: string) {
   const supabase = await createClient();

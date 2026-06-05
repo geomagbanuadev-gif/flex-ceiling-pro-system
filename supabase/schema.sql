@@ -75,6 +75,7 @@ create table if not exists documents (
   grand_total    numeric default 0,
   amount_in_words text,
   supplier_snapshot jsonb,     -- frozen company/bank/TRN details as printed at issue time
+  share_token    text,         -- unguessable token for a public read-only share link (null = not shared)
   notes          text,
   source_file    text,        -- original Excel filename (for imported records)
   imported       boolean default false,
@@ -87,6 +88,7 @@ create table if not exists documents (
 create index if not exists documents_type_idx   on documents (type);
 create index if not exists documents_client_idx on documents (client_id);
 create index if not exists documents_number_idx on documents (number);
+create unique index if not exists documents_share_token_idx on documents (share_token) where share_token is not null;
 create index if not exists documents_date_idx   on documents (doc_date desc);
 
 -- ── Line items ──────────────────────────────────────────────────────────────
