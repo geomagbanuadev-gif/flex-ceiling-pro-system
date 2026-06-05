@@ -4,6 +4,15 @@ import fs from "node:fs";
 import path from "node:path";
 import { createClient } from "@/utils/supabase/server";
 import { QuoteDocument } from "@/components/pdf/QuotePdf";
+import { InvoiceDocument } from "@/components/pdf/InvoicePdf";
+
+function asset(file: string): string | undefined {
+  try {
+    return "data:image/png;base64," + fs.readFileSync(path.join(process.cwd(), "public", file)).toString("base64");
+  } catch {
+    return undefined;
+  }
+}
 
 export const runtime = "nodejs";
 
@@ -21,22 +30,24 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     return new Response("Document not found", { status: 404 });
   }
 
-  let logoSrc: string | undefined;
-  try {
-    const buf = fs.readFileSync(path.join(process.cwd(), "public", "logo-mark.png"));
-    logoSrc = "data:image/png;base64," + buf.toString("base64");
-  } catch {
-    // logo optional
-  }
+  const logoSrc = asset("logo-mark.png");
+  const stampSrc = asset("stamp.png");
 
-  const pdf = await renderToBuffer(
-    QuoteDocument({ doc: docRes.data, items: itemsRes.data ?? [], settings: settingsRes.data ?? {}, logoSrc })
-  );
+  const doc = docRes.data;
+  const items = itemsRes.data ?? [];
+  const settings = settingsRes.data ?? {};
+  const isInvoice = doc.type === "invoice";
 
+  const element = isInvoice
+    ? InvoiceDocument({ doc, items, settings, logoSrc, stampSrc })
+    : QuoteDocument({ doc, items, settings, logoSrc, stampSrc });
+  const pdf = await renderToBuffer(element);
+
+  const prefix = isInvoice ? "Tax-Invoice" : "Quotation";
   return new Response(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="Quotation-${docRes.data.number}.pdf"`,
+      "Content-Disposition": `inline; filename="${prefix}-${doc.number}.pdf"`,
       "Cache-Control": "no-store",
     },
   });

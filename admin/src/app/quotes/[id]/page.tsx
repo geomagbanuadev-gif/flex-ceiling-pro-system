@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { AppShell } from "@/components/AppShell";
+import { ConvertButton } from "@/components/ConvertButton";
 
 const money = (v: number | null) =>
   v == null ? "—" : "AED " + Number(v).toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -20,6 +21,7 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
       action={
         <div className="flex gap-2">
           <Link href="/quotes" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">← Back</Link>
+          {doc.type === "quote" && <ConvertButton quoteId={id} />}
           <a href={`/quotes/${id}/pdf`} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy-700">Open / Print PDF</a>
         </div>
       }
@@ -30,9 +32,13 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Client</p>
             <p className="mt-2 text-base font-semibold text-slate-900">{doc.client_name}</p>
             {doc.client_trn && <p className="text-slate-600">TRN: {doc.client_trn}</p>}
+            {doc.client_email && <p className="text-slate-600">{doc.client_email}</p>}
             {doc.contact_person && <p className="text-slate-600">{doc.contact_person}{doc.contact_phone ? ` · ${doc.contact_phone}` : ""}</p>}
             {doc.client_address && <p className="text-slate-600">{doc.client_address}</p>}
             {doc.reference && <p className="mt-2 text-slate-500">{doc.reference}</p>}
+            {doc.type === "invoice" && doc.converted_from && (
+              <p className="mt-2 text-xs text-slate-400">Generated from quotation <Link href={`/quotes/${doc.converted_from}`} className="text-navy-600 hover:underline">#{doc.converted_from.slice(0, 8)}</Link></p>
+            )}
           </div>
 
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">

@@ -15,7 +15,7 @@ function nextQuoteNumber(numbers: string[], prefix: string) {
 export default async function NewQuotePage() {
   const supabase = await createClient();
   const [clientsRes, settingsRes, numbersRes] = await Promise.all([
-    supabase.from("clients").select("id, name, trn, address, contact_person, contact_phone").order("name"),
+    supabase.from("clients").select("id, name, trn, address, email, contact_person, contact_phone").order("name"),
     supabase.from("company_settings").select("*").eq("id", 1).maybeSingle(),
     supabase.from("documents").select("number").eq("type", "quote"),
   ]);

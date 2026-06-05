@@ -8,6 +8,7 @@ type Client = {
   name: string;
   trn: string | null;
   address: string | null;
+  email: string | null;
   contact_person: string | null;
   contact_phone: string | null;
 };
@@ -33,6 +34,7 @@ export function QuoteForm({
   const [clientName, setClientName] = useState("");
   const [clientTrn, setClientTrn] = useState("");
   const [clientAddress, setClientAddress] = useState("");
+  const [clientEmail, setClientEmail] = useState("");
   const [contactPerson, setContactPerson] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [number, setNumber] = useState(nextNumber);
@@ -62,6 +64,7 @@ export function QuoteForm({
     setClientName(c.name);
     setClientTrn(c.trn ?? "");
     setClientAddress(c.address ?? "");
+    setClientEmail(c.email ?? "");
     setContactPerson(c.contact_person ?? "");
     setContactPhone(c.contact_phone ?? "");
   }
@@ -91,6 +94,7 @@ export function QuoteForm({
       clientName,
       clientTrn,
       clientAddress,
+      clientEmail,
       contactPerson,
       contactPhone,
       number,
@@ -145,6 +149,10 @@ export function QuoteForm({
           <div>
             <label className={lbl}>TRN</label>
             <input className={inp + " mt-1.5"} value={clientTrn} onChange={(e) => setClientTrn(e.target.value)} />
+          </div>
+          <div>
+            <label className={lbl}>Email</label>
+            <input className={inp + " mt-1.5"} value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} placeholder="shown on Tax Invoice" />
           </div>
           <div>
             <label className={lbl}>Contact person</label>
