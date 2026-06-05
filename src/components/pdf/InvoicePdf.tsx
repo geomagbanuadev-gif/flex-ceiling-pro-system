@@ -42,6 +42,7 @@ const s = StyleSheet.create({
   words: { flex: 1, paddingRight: 12, justifyContent: "center" },
   wordsLabel: { fontSize: 7, color: MUTED, textTransform: "uppercase" },
   wordsTxt: { fontSize: 9, fontFamily: "Helvetica-Bold", color: NAVY, marginTop: 2 },
+  note: { marginTop: 10, fontSize: 9, color: "#c0392b", fontFamily: "Helvetica-Bold" },
   totals: { width: 220 },
   totRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 3, paddingHorizontal: 6 },
   totGrand: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 6, paddingHorizontal: 6, backgroundColor: NAVY },
@@ -62,10 +63,27 @@ const money = (v: number | null | undefined) =>
 type Doc = {
   number: string; doc_date: string | null;
   client_name: string | null; client_trn: string | null; client_address: string | null; client_email: string | null;
-  subtotal: number | null; vat_rate: number | null; vat_amount: number | null; grand_total: number | null;
-  amount_in_words: string | null;
+  subtotal: number | null; discount: number | null; vat_rate: number | null; vat_amount: number | null; grand_total: number | null;
+  amount_in_words: string | null; notes: string | null;
 };
 type Item = { sr_no: number | null; description: string | null; area: number | null; unit: string | null; rate: number | null; amount: number | null };
+
+// Render a multi-line description; lines starting with "*" print red + bold.
+function DescCell({ text }: { text: string | null }) {
+  const lines = String(text ?? "").split("\n");
+  return (
+    <View style={[s.td, s.cDesc]}>
+      {lines.map((line, j) => {
+        const red = line.trimStart().startsWith("*");
+        return (
+          <Text key={j} style={red ? { color: "#c0392b", fontFamily: "Helvetica-Bold" } : undefined}>
+            {red ? line.replace(/^\s*\*\s?/, "") : line}
+          </Text>
+        );
+      })}
+    </View>
+  );
+}
 type Settings = {
   legal_name?: string; address?: string; email?: string; phone?: string; trn?: string;
   bank_account_name?: string; bank_account_no?: string; bank_iban?: string; bank_currency?: string; bank_name?: string;
@@ -111,7 +129,7 @@ export function InvoiceDocument({ doc, items, settings, logoSrc, stampSrc }: { d
         </View>
         {items.map((it, i) => (
           <View style={s.tr} key={i} wrap={false}>
-            <Text style={[s.td, s.cDesc]}>{it.description ?? ""}</Text>
+            <DescCell text={it.description} />
             <Text style={[s.td, s.cQty]}>{it.area ?? ""}</Text>
             <Text style={[s.td, s.cUnit]}>{it.unit ?? ""}</Text>
             <Text style={[s.td, s.cRate]}>{it.rate != null ? Number(it.rate).toLocaleString() : ""}</Text>
@@ -127,10 +145,13 @@ export function InvoiceDocument({ doc, items, settings, logoSrc, stampSrc }: { d
           </View>
           <View style={s.totals}>
             <View style={s.totRow}><Text style={{ color: MUTED }}>Sub Total</Text><Text style={{ fontFamily: "Helvetica-Bold" }}>{money(doc.subtotal)}</Text></View>
+            {doc.discount ? <View style={s.totRow}><Text style={{ color: MUTED }}>Discount</Text><Text style={{ fontFamily: "Helvetica-Bold" }}>- {money(doc.discount)}</Text></View> : null}
             <View style={s.totRow}><Text style={{ color: MUTED }}>VAT {doc.vat_rate ?? 5}%</Text><Text style={{ fontFamily: "Helvetica-Bold" }}>{money(doc.vat_amount)}</Text></View>
             <View style={s.totGrand}><Text style={s.totGrandTxt}>Grand Total</Text><Text style={s.totGrandTxt}>{money(doc.grand_total)}</Text></View>
           </View>
         </View>
+
+        {doc.notes ? <Text style={s.note}>{doc.notes}</Text> : null}
 
         <View style={s.bank}>
           <View style={s.bankCol}>

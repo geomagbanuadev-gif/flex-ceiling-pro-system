@@ -55,6 +55,7 @@ const s = StyleSheet.create({
   termsCol: { flex: 1 },
   termsHead: { fontSize: 8, fontFamily: "Helvetica-Bold", color: NAVY, textTransform: "uppercase", marginBottom: 3 },
   termsTxt: { fontSize: 8, color: "#333" },
+  note: { marginTop: 10, fontSize: 9, color: "#c0392b", fontFamily: "Helvetica-Bold" },
 
   sign: { flexDirection: "row", justifyContent: "space-between", marginTop: 18, paddingTop: 6, borderTopWidth: 1, borderTopColor: BORDER, fontSize: 8 },
 
@@ -80,12 +81,31 @@ type Doc = {
   contact_phone: string | null;
   reference: string | null;
   subtotal: number | null;
+  discount: number | null;
   vat_rate: number | null;
   vat_amount: number | null;
   grand_total: number | null;
   payment_terms: string | null;
   validity_days: number | null;
+  notes: string | null;
 };
+
+// Render a multi-line description; lines starting with "*" print red + bold.
+function DescCell({ text }: { text: string | null }) {
+  const lines = String(text ?? "").split("\n");
+  return (
+    <View style={[s.td, s.cDesc]}>
+      {lines.map((line, j) => {
+        const red = line.trimStart().startsWith("*");
+        return (
+          <Text key={j} style={red ? { color: "#c0392b", fontFamily: "Helvetica-Bold" } : undefined}>
+            {red ? line.replace(/^\s*\*\s?/, "") : line}
+          </Text>
+        );
+      })}
+    </View>
+  );
+}
 type Item = { sr_no: number | null; description: string | null; area: number | null; unit: string | null; rate: number | null; amount: number | null };
 type Settings = {
   legal_name?: string; address?: string; email?: string; phone?: string; trn?: string;
@@ -144,7 +164,7 @@ export function QuoteDocument({ doc, items, settings, logoSrc, stampSrc }: { doc
         {items.map((it, i) => (
           <View style={s.tr} key={i} wrap={false}>
             <Text style={[s.td, s.cSr]}>{it.sr_no ?? i + 1}</Text>
-            <Text style={[s.td, s.cDesc]}>{it.description ?? ""}</Text>
+            <DescCell text={it.description} />
             <Text style={[s.td, s.cArea]}>{it.area ?? ""}</Text>
             <Text style={[s.td, s.cUnit]}>{it.unit ?? ""}</Text>
             <Text style={[s.td, s.cRate]}>{it.rate != null ? Number(it.rate).toLocaleString() : ""}</Text>
@@ -157,10 +177,13 @@ export function QuoteDocument({ doc, items, settings, logoSrc, stampSrc }: { doc
         <View style={s.totalsWrap}>
           <View style={s.totals}>
             <View style={s.totRow}><Text style={{ color: MUTED }}>Sub Total</Text><Text style={{ fontFamily: "Helvetica-Bold" }}>{money(doc.subtotal)}</Text></View>
+            {doc.discount ? <View style={s.totRow}><Text style={{ color: MUTED }}>Discount</Text><Text style={{ fontFamily: "Helvetica-Bold" }}>- {money(doc.discount)}</Text></View> : null}
             <View style={s.totRow}><Text style={{ color: MUTED }}>VAT {doc.vat_rate ?? 5}%</Text><Text style={{ fontFamily: "Helvetica-Bold" }}>{money(doc.vat_amount)}</Text></View>
             <View style={s.totGrand}><Text style={s.totGrandTxt}>Grand Total</Text><Text style={s.totGrandTxt}>{money(doc.grand_total)}</Text></View>
           </View>
         </View>
+
+        {doc.notes ? <Text style={s.note}>{doc.notes}</Text> : null}
 
         {/* Terms */}
         <View style={s.termsRow}>

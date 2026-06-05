@@ -64,6 +64,7 @@ export type QuotePayload = {
   validityDays: number;
   notes: string;
   vatRate: number;
+  discount: number;
   subtotal: number;
   vatAmount: number;
   grandTotal: number;
@@ -121,6 +122,7 @@ export async function saveQuote(p: QuotePayload) {
     payment_terms: p.paymentTerms || null,
     validity_days: p.validityDays || null,
     subtotal: p.subtotal,
+    discount: p.discount || 0,
     vat_rate: p.vatRate,
     vat_amount: p.vatAmount,
     grand_total: p.grandTotal,
@@ -210,7 +212,9 @@ export async function convertToInvoice(quoteId: string) {
     contact_phone: quote.contact_phone,
     reference: quote.reference,
     status: "draft",
+    notes: quote.notes,
     subtotal: quote.subtotal,
+    discount: quote.discount,
     vat_rate: quote.vat_rate,
     vat_amount: quote.vat_amount,
     grand_total: quote.grand_total,
@@ -303,6 +307,7 @@ export async function duplicateDocument(docId: string) {
     payment_terms: src.payment_terms,
     validity_days: src.validity_days,
     subtotal: src.subtotal,
+    discount: src.discount,
     vat_rate: src.vat_rate,
     vat_amount: src.vat_amount,
     grand_total: src.grand_total,

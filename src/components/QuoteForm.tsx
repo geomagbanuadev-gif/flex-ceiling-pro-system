@@ -37,6 +37,7 @@ export type QuoteInitial = {
   paymentTerms: string;
   validityDays: number;
   vatRate: number;
+  discount: number;
   notes: string;
   items: Item[];
 };
@@ -70,6 +71,7 @@ export function QuoteForm({
   const [paymentTerms, setPaymentTerms] = useState(initial?.paymentTerms ?? defaults.paymentTerms);
   const [validityDays, setValidityDays] = useState(initial?.validityDays ?? defaults.validityDays);
   const [vatRate, setVatRate] = useState(initial?.vatRate ?? defaults.vatRate);
+  const [discount, setDiscount] = useState(String(initial?.discount ?? ""));
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [items, setItems] = useState<Item[]>(initial?.items?.length ? initial.items : [emptyItem()]);
   const [pending, startTransition] = useTransition();
@@ -77,9 +79,11 @@ export function QuoteForm({
 
   const totals = useMemo(() => {
     const subtotal = items.reduce((s, it) => s + numOr0(it.amount), 0);
-    const vatAmount = +(subtotal * (vatRate / 100)).toFixed(2);
-    return { subtotal: +subtotal.toFixed(2), vatAmount, grandTotal: +(subtotal + vatAmount).toFixed(2) };
-  }, [items, vatRate]);
+    const disc = Math.min(numOr0(discount), subtotal);
+    const taxable = subtotal - disc;
+    const vatAmount = +(taxable * (vatRate / 100)).toFixed(2);
+    return { subtotal: +subtotal.toFixed(2), discount: +disc.toFixed(2), vatAmount, grandTotal: +(taxable + vatAmount).toFixed(2) };
+  }, [items, vatRate, discount]);
 
   function pickClient(id: string) {
     const c = clients.find((x) => x.id === id);
@@ -133,6 +137,7 @@ export function QuoteForm({
       validityDays: Number(validityDays) || 0,
       notes,
       vatRate: Number(vatRate) || 0,
+      discount: totals.discount,
       subtotal: totals.subtotal,
       vatAmount: totals.vatAmount,
       grandTotal: totals.grandTotal,
@@ -220,7 +225,10 @@ export function QuoteForm({
       {/* Line items */}
       <section className="rounded-xl border border-slate-200 bg-white p-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Line items</h2>
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Line items</h2>
+            <p className="mt-0.5 text-xs text-slate-400">Tip: start a description line with <span className="font-mono text-red-500">*</span> to print that line in red.</p>
+          </div>
           <button type="button" onClick={() => setItems((p) => [...p, emptyItem()])} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">+ Add row</button>
         </div>
         <div className="mt-4 space-y-3">
@@ -240,6 +248,7 @@ export function QuoteForm({
         <div className="mt-5 flex justify-end">
           <div className="w-full max-w-xs space-y-1.5 text-sm">
             <div className="flex justify-between"><span className="text-slate-500">Sub Total</span><span className="font-medium">AED {totals.subtotal.toLocaleString()}</span></div>
+            <div className="flex items-center justify-between"><span className="text-slate-500">Discount</span><span className="flex items-center gap-1">AED <input className="w-24 rounded border border-slate-300 px-2 py-0.5 text-right" inputMode="decimal" placeholder="0" value={discount} onChange={(e) => setDiscount(e.target.value)} /></span></div>
             <div className="flex items-center justify-between"><span className="text-slate-500">VAT <input className="mx-1 w-12 rounded border border-slate-300 px-1 text-center" value={vatRate} onChange={(e) => setVatRate(Number(e.target.value))} />%</span><span className="font-medium">AED {totals.vatAmount.toLocaleString()}</span></div>
             <div className="flex justify-between border-t border-slate-200 pt-1.5 text-base font-semibold"><span>Grand Total</span><span>AED {totals.grandTotal.toLocaleString()}</span></div>
           </div>
@@ -257,8 +266,8 @@ export function QuoteForm({
           <div>
             <label className={lbl}>Quote validity (days)</label>
             <input type="number" className={inp + " mt-1.5"} value={validityDays} onChange={(e) => setValidityDays(Number(e.target.value))} />
-            <label className={lbl + " mt-4 block"}>Internal notes (not printed)</label>
-            <textarea rows={2} className={inp + " mt-1.5"} value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <label className={lbl + " mt-4 block"}>Note — printed in red on the document</label>
+            <textarea rows={2} className={inp + " mt-1.5"} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Powder-coated color is subject to client's final approval before fabrication." />
           </div>
         </div>
       </section>

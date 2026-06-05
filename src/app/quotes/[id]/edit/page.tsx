@@ -36,6 +36,7 @@ export default async function EditDocumentPage(props: PageProps<"/quotes/[id]/ed
     paymentTerms: doc.payment_terms ?? "",
     validityDays: doc.validity_days ?? 7,
     vatRate: doc.vat_rate ?? 5,
+    discount: doc.discount ?? 0,
     notes: doc.notes ?? "",
     items: (itemsRes.data ?? []).map((it) => ({
       description: it.description ?? "",

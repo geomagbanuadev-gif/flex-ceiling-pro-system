@@ -94,10 +94,12 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
             </table>
             <div className="space-y-1 border-t border-slate-200 p-3 text-sm">
               <div className="flex justify-between"><span className="text-slate-500">Sub Total</span><span>{money(doc.subtotal)}</span></div>
+              {doc.discount ? <div className="flex justify-between"><span className="text-slate-500">Discount</span><span>- {money(doc.discount)}</span></div> : null}
               <div className="flex justify-between"><span className="text-slate-500">VAT {doc.vat_rate ?? 5}%</span><span>{money(doc.vat_amount)}</span></div>
               <div className="flex justify-between border-t border-slate-200 pt-1.5 text-base font-semibold text-slate-900"><span>Grand Total</span><span>{money(doc.grand_total)}</span></div>
             </div>
           </div>
+          {doc.notes ? <p className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{doc.notes}</p> : null}
         </section>
 
         <section className="rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
