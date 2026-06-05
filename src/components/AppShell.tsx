@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SignOutButton } from "./SignOutButton";
+import { MobileNav } from "./MobileNav";
 import { cn } from "@/utils/cn";
 import { getProfile, canSeeQuotes, canSeeInvoices } from "@/utils/profile";
 
@@ -78,10 +79,11 @@ export async function AppShell({
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/account" className="hidden text-xs text-white/55 hover:text-white sm:block" title="Account & password">
+            <Link href="/account" className="hidden text-xs text-white/55 hover:text-white md:block" title="Account & password">
               {profile.email} <span className="text-white/30">·</span> <span className="capitalize">{profile.role}</span>
             </Link>
-            <SignOutButton />
+            <div className="hidden md:block"><SignOutButton /></div>
+            <MobileNav nav={nav} active={active} email={profile.email} role={profile.role} />
           </div>
         </div>
       </header>
