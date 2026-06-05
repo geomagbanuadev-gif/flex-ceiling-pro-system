@@ -102,15 +102,17 @@ export async function saveQuote(p: QuotePayload) {
   let docId = p.id;
   if (docId) {
     // edit: update fields but keep the existing status
-    await supabase.from("documents").update(docFields).eq("id", docId);
-    await supabase.from("document_items").delete().eq("document_id", docId);
+    const { error: upErr } = await supabase.from("documents").update(docFields).eq("id", docId);
+    if (upErr) throw new Error(`Could not save document: ${upErr.message}`);
+    const { error: delErr } = await supabase.from("document_items").delete().eq("document_id", docId);
+    if (delErr) throw new Error(`Could not update line items: ${delErr.message}`);
   } else {
     const { data: doc, error } = await supabase
       .from("documents")
       .insert({ ...docFields, status: "draft", created_by: user.id })
       .select("id")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(`Could not create document: ${error.message}`);
     docId = doc.id;
   }
 
@@ -126,7 +128,10 @@ export async function saveQuote(p: QuotePayload) {
       amount: it.amount,
       sort_order: i,
     }));
-  if (items.length) await supabase.from("document_items").insert(items);
+  if (items.length) {
+    const { error: itErr } = await supabase.from("document_items").insert(items);
+    if (itErr) throw new Error(`Could not save line items: ${itErr.message}`);
+  }
 
   redirect(`/quotes/${docId}`);
 }
