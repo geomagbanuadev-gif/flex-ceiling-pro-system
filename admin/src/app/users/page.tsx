@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { getProfile } from "@/utils/profile";
 import { UserControls } from "@/components/UserControls";
+import { AddUserForm } from "@/components/AddUserForm";
 
 const ROLE_LABEL: Record<string, string> = {
   super: "Super",
@@ -21,9 +22,11 @@ export default async function UsersPage() {
   return (
     <AppShell active="users" title="Users & access">
       <p className="mb-5 max-w-3xl text-sm text-slate-500">
-        Create the login in Supabase (<span className="font-medium text-slate-600">Authentication → Add user</span>) — it appears here automatically.
-        Set each person&apos;s access level, then <span className="font-medium text-slate-600">Enable</span> them. Use <span className="font-medium text-slate-600">Revoke</span> to remove access. A super user can&apos;t be revoked or demoted.
+        Add a user with their access level below. Change a level or <span className="font-medium text-slate-600">Revoke</span> access anytime.
+        A super user can&apos;t be revoked or demoted. (Users can also be created in the Supabase dashboard — they&apos;ll appear here as <span className="font-medium text-slate-600">No access</span>.)
       </p>
+
+      <div className="mb-6"><AddUserForm /></div>
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full text-sm">
