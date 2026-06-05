@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { ConvertButton } from "@/components/ConvertButton";
+import { DuplicateButton } from "@/components/DuplicateButton";
+import { DeleteButton } from "@/components/DeleteButton";
+import { StatusControl } from "@/components/StatusControl";
 
 const money = (v: number | null) =>
   v == null ? "—" : "AED " + Number(v).toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -21,11 +24,24 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
       action={
         <div className="flex gap-2">
           <Link href="/quotes" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">← Back</Link>
-          {doc.type === "quote" && <ConvertButton quoteId={id} />}
+          <Link href={`/quotes/${id}/edit`} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">Edit</Link>
           <a href={`/quotes/${id}/pdf`} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy-700">Open / Print PDF</a>
         </div>
       }
     >
+      {/* Status + lifecycle actions */}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <div className="flex items-center gap-2 text-sm text-slate-500">
+          <span className="font-medium">Status</span>
+          <StatusControl docId={id} type={doc.type === "invoice" ? "invoice" : "quote"} current={doc.status} />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {doc.type === "quote" && <ConvertButton quoteId={id} />}
+          <DuplicateButton docId={id} />
+          <DeleteButton docId={id} label={`${doc.type === "invoice" ? "Tax Invoice" : "Quotation"} ${doc.number}`} />
+        </div>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="space-y-4">
           <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm shadow-sm">

@@ -21,30 +21,55 @@ const numOr0 = (v: string) => {
   return isNaN(n) ? 0 : n;
 };
 
+export type QuoteInitial = {
+  id: string;
+  type: "quote" | "invoice";
+  clientId: string | null;
+  clientName: string;
+  clientTrn: string;
+  clientAddress: string;
+  clientEmail: string;
+  contactPerson: string;
+  contactPhone: string;
+  number: string;
+  date: string;
+  reference: string;
+  paymentTerms: string;
+  validityDays: number;
+  vatRate: number;
+  notes: string;
+  items: Item[];
+};
+
 export function QuoteForm({
   clients,
   nextNumber,
   defaults,
+  initial,
 }: {
   clients: Client[];
   nextNumber: string;
   defaults: { paymentTerms: string; validityDays: number; vatRate: number };
+  initial?: QuoteInitial;
 }) {
-  const [clientId, setClientId] = useState<string | null>(null);
-  const [clientName, setClientName] = useState("");
-  const [clientTrn, setClientTrn] = useState("");
-  const [clientAddress, setClientAddress] = useState("");
-  const [clientEmail, setClientEmail] = useState("");
-  const [contactPerson, setContactPerson] = useState("");
-  const [contactPhone, setContactPhone] = useState("");
-  const [number, setNumber] = useState(nextNumber);
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [reference, setReference] = useState("");
-  const [paymentTerms, setPaymentTerms] = useState(defaults.paymentTerms);
-  const [validityDays, setValidityDays] = useState(defaults.validityDays);
-  const [vatRate, setVatRate] = useState(defaults.vatRate);
-  const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<Item[]>([emptyItem()]);
+  const isInvoice = initial?.type === "invoice";
+  const docWord = isInvoice ? "Tax Invoice" : "Quotation";
+
+  const [clientId, setClientId] = useState<string | null>(initial?.clientId ?? null);
+  const [clientName, setClientName] = useState(initial?.clientName ?? "");
+  const [clientTrn, setClientTrn] = useState(initial?.clientTrn ?? "");
+  const [clientAddress, setClientAddress] = useState(initial?.clientAddress ?? "");
+  const [clientEmail, setClientEmail] = useState(initial?.clientEmail ?? "");
+  const [contactPerson, setContactPerson] = useState(initial?.contactPerson ?? "");
+  const [contactPhone, setContactPhone] = useState(initial?.contactPhone ?? "");
+  const [number, setNumber] = useState(initial?.number ?? nextNumber);
+  const [date, setDate] = useState(initial?.date ?? new Date().toISOString().slice(0, 10));
+  const [reference, setReference] = useState(initial?.reference ?? "");
+  const [paymentTerms, setPaymentTerms] = useState(initial?.paymentTerms ?? defaults.paymentTerms);
+  const [validityDays, setValidityDays] = useState(initial?.validityDays ?? defaults.validityDays);
+  const [vatRate, setVatRate] = useState(initial?.vatRate ?? defaults.vatRate);
+  const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [items, setItems] = useState<Item[]>(initial?.items?.length ? initial.items : [emptyItem()]);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
 
@@ -90,6 +115,8 @@ export function QuoteForm({
       return;
     }
     const payload: QuotePayload = {
+      id: initial?.id,
+      type: initial?.type ?? "quote",
       clientId,
       clientName,
       clientTrn,
@@ -171,10 +198,10 @@ export function QuoteForm({
 
       {/* Quote details */}
       <section className="rounded-xl border border-slate-200 bg-white p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Quotation details</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{docWord} details</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
-            <label className={lbl}>Quote No.</label>
+            <label className={lbl}>{isInvoice ? "Invoice No." : "Quote No."}</label>
             <input className={inp + " mt-1.5"} value={number} onChange={(e) => setNumber(e.target.value)} />
           </div>
           <div>
@@ -237,7 +264,7 @@ export function QuoteForm({
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex justify-end gap-3">
         <button type="button" disabled={pending} onClick={submit} className="rounded-lg bg-navy px-6 py-2.5 text-sm font-medium text-white hover:bg-navy-700 disabled:opacity-60">
-          {pending ? "Saving…" : "Save quotation"}
+          {pending ? "Saving…" : initial ? "Save changes" : `Save ${docWord.toLowerCase()}`}
         </button>
       </div>
     </div>
