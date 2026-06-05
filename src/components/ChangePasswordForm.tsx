@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { useToast } from "./Toast";
 
 export function ChangePasswordForm() {
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const toast = useToast();
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -18,9 +20,12 @@ export function ChangePasswordForm() {
     const supabase = createClient();
     const { error } = await supabase.auth.updateUser({ password: pw });
     setBusy(false);
-    if (error) setMsg({ ok: false, text: error.message });
-    else {
+    if (error) {
+      setMsg({ ok: false, text: error.message });
+      toast(error.message, "error");
+    } else {
       setMsg({ ok: true, text: "Password updated." });
+      toast("Password updated");
       setPw("");
       setPw2("");
     }

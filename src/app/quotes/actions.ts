@@ -164,7 +164,7 @@ export async function saveQuote(p: QuotePayload) {
     if (itErr) throw new Error(`Could not save line items: ${itErr.message}`);
   }
 
-  redirect(`/quotes/${docId}`);
+  redirect(`/quotes/${docId}?flash=saved`);
 }
 
 /** Generate a Tax Invoice from an existing quotation (copies client + line items). */
@@ -243,7 +243,7 @@ export async function convertToInvoice(quoteId: string) {
   // mark the quote as won/converted
   await supabase.from("documents").update({ status: "won" }).eq("id", quoteId);
 
-  redirect(`/quotes/${inv.id}`);
+  redirect(`/quotes/${inv.id}?flash=converted`);
 }
 
 /** Change a document's status (validated against the doc type). */
@@ -333,7 +333,7 @@ export async function duplicateDocument(docId: string) {
     );
   }
 
-  redirect(`/quotes/${copy.id}/edit`);
+  redirect(`/quotes/${copy.id}/edit?flash=duplicated`);
 }
 
 /** Create a fresh blank Tax Invoice (not tied to a quote) and open it for editing. */
@@ -374,5 +374,5 @@ export async function deleteDocument(docId: string) {
   const { error } = await supabase.from("documents").delete().eq("id", docId);
   if (error) throw new Error(error.message);
   revalidatePath("/quotes");
-  redirect("/quotes");
+  redirect("/quotes?flash=deleted");
 }

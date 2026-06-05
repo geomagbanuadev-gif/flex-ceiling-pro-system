@@ -44,5 +44,5 @@ export async function saveClient(p: ClientPayload) {
     if (error) throw new Error(error.message);
     id = data.id;
   }
-  redirect(`/clients/${id}`);
+  redirect(`/clients/${id}?flash=client-saved`);
 }

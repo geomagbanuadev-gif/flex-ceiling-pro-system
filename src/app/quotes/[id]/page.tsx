@@ -6,6 +6,7 @@ import { ConvertButton } from "@/components/ConvertButton";
 import { DuplicateButton } from "@/components/DuplicateButton";
 import { DeleteButton } from "@/components/DeleteButton";
 import { StatusControl } from "@/components/StatusControl";
+import { fmtDate } from "@/utils/format";
 
 const money = (v: number | null) =>
   v == null ? "—" : "AED " + Number(v).toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -16,6 +17,13 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
   const { data: doc } = await supabase.from("documents").select("*").eq("id", id).single();
   if (!doc) notFound();
   const { data: items } = await supabase.from("document_items").select("*").eq("document_id", id).order("sort_order");
+
+  // audit trail — resolve creator/updater to emails
+  const auditIds = [doc.created_by, doc.updated_by].filter(Boolean);
+  const { data: profs } = auditIds.length
+    ? await supabase.from("profiles").select("id, email").in("id", auditIds)
+    : { data: [] as { id: string; email: string }[] };
+  const emailOf = (uid: string | null) => profs?.find((p) => p.id === uid)?.email ?? null;
 
   // quote validity / expiry
   let expiry: { until: string; expired: boolean } | null = null;
@@ -100,6 +108,11 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
             </div>
           </div>
           {doc.notes ? <p className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{doc.notes}</p> : null}
+
+          <p className="text-xs text-slate-400">
+            {emailOf(doc.created_by) ? <>Created by {emailOf(doc.created_by)}</> : "Imported"}
+            {doc.updated_at ? <> · last updated {fmtDate(doc.updated_at.slice(0, 10))}{emailOf(doc.updated_by) ? ` by ${emailOf(doc.updated_by)}` : ""}</> : null}
+          </p>
         </section>
 
         <section className="rounded-xl border border-slate-200 bg-white p-2 shadow-sm">

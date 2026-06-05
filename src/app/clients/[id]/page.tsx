@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { ClientForm } from "@/components/ClientForm";
+import { fmtDate } from "@/utils/format";
 
 const money = (v: number | null) => (v == null ? "—" : "AED " + Number(v).toLocaleString());
 
@@ -70,7 +71,7 @@ export default async function ClientDetailPage(props: PageProps<"/clients/[id]">
                 <tr key={d.id} className="relative cursor-pointer hover:bg-slate-50">
                   <td className="px-4 py-2.5"><Link href={`/quotes/${d.id}`} className="font-medium text-navy hover:underline before:absolute before:inset-0">{d.number}</Link></td>
                   <td className="px-4 py-2.5"><span className="text-xs capitalize text-slate-500">{d.type}</span></td>
-                  <td className="px-4 py-2.5 text-slate-600">{d.doc_date ?? "—"}</td>
+                  <td className="px-4 py-2.5 text-slate-600">{fmtDate(d.doc_date)}</td>
                   <td className="px-4 py-2.5 text-right font-medium text-slate-900">{money(d.grand_total)}</td>
                 </tr>
               ))}

@@ -8,6 +8,8 @@ import { PAGE_SIZES } from "@/utils/pagination";
 import { TableSkeleton } from "@/components/TableSkeleton";
 import { newInvoice } from "@/app/quotes/actions";
 import { getProfile, canSeeQuotes, canSeeInvoices } from "@/utils/profile";
+import { fmtDate } from "@/utils/format";
+import { StatusBadge } from "@/components/StatusBadge";
 
 const money = (v: number | null) => (v == null ? "—" : "AED " + Number(v).toLocaleString());
 const SORT_COLS = ["doc_date", "number", "grand_total", "client_name"];
@@ -108,8 +110,8 @@ async function DocumentsTable({ sp }: { sp: Record<string, string | string[] | u
                 <td className="px-4 py-2.5">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${d.type === "invoice" ? "bg-gold/10 text-gold" : "bg-navy/10 text-navy"}`}>{d.type}</span>
                 </td>
-                <td className="px-4 py-2.5"><span className="text-xs capitalize text-slate-500">{d.status ?? "—"}</span></td>
-                <td className="px-4 py-2.5 text-slate-600">{d.doc_date ?? "—"}</td>
+                <td className="px-4 py-2.5"><StatusBadge status={d.status} /></td>
+                <td className="px-4 py-2.5 text-slate-600">{fmtDate(d.doc_date)}</td>
                 <td className="px-4 py-2.5 text-slate-700">{d.client_name || "—"}</td>
                 <td className="px-4 py-2.5 text-right font-medium text-slate-900">{money(d.grand_total)}</td>
               </tr>

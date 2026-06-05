@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { saveSettings, type SettingsPayload } from "@/app/settings/actions";
+import { useToast } from "./Toast";
 
 type Settings = Partial<SettingsPayload>;
 
@@ -25,6 +26,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
   });
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const toast = useToast();
 
   const set = (k: keyof SettingsPayload) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setF((prev) => ({ ...prev, [k]: e.target.value }));
@@ -36,8 +38,10 @@ export function SettingsForm({ settings }: { settings: Settings }) {
       try {
         await saveSettings(f);
         setMsg({ ok: true, text: "Settings saved." });
+        toast("Settings saved");
       } catch (err) {
         setMsg({ ok: false, text: err instanceof Error ? err.message : "Failed to save" });
+        toast(err instanceof Error ? err.message : "Failed to save", "error");
       }
     });
   }

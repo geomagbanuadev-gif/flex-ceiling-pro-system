@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { setUserRole, setUserActive } from "@/app/users/actions";
 import { Spinner } from "./Spinner";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { useToast } from "./Toast";
 
 const ROLES = [
   { v: "super", l: "Super" },
@@ -19,16 +20,20 @@ export function UserControls({ id, role, active }: { id: string; role: string; a
   const [error, setError] = useState("");
   const [confirmRevoke, setConfirmRevoke] = useState(false);
   const isSuper = role === "super";
+  const toast = useToast();
 
-  function run(fn: () => Promise<void>, onDone?: () => void) {
+  function run(fn: () => Promise<void>, okMsg: string, onDone?: () => void) {
     setError("");
     start(async () => {
       try {
         await fn();
+        toast(okMsg);
         onDone?.();
         router.refresh();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed");
+        const m = e instanceof Error ? e.message : "Failed";
+        setError(m);
+        toast(m, "error");
       }
     });
   }
@@ -39,7 +44,7 @@ export function UserControls({ id, role, active }: { id: string; role: string; a
         <select
           disabled={pending || isSuper}
           value={role}
-          onChange={(e) => run(() => setUserRole(id, e.target.value))}
+          onChange={(e) => run(() => setUserRole(id, e.target.value), "Access level updated")}
           className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-700 outline-none focus:border-navy disabled:opacity-50"
         >
           {ROLES.map((r) => <option key={r.v} value={r.v}>{r.l}</option>)}
@@ -47,7 +52,7 @@ export function UserControls({ id, role, active }: { id: string; role: string; a
         <button
           type="button"
           disabled={pending || isSuper}
-          onClick={() => (active ? setConfirmRevoke(true) : run(() => setUserActive(id, true)))}
+          onClick={() => (active ? setConfirmRevoke(true) : run(() => setUserActive(id, true), "Access enabled"))}
           className={`rounded-lg border px-3 py-1.5 text-sm font-medium disabled:opacity-40 ${
             active ? "border-red-200 text-red-600 hover:bg-red-50" : "border-green-200 text-green-700 hover:bg-green-50"
           }`}
@@ -66,7 +71,7 @@ export function UserControls({ id, role, active }: { id: string; role: string; a
         danger
         pending={pending}
         error={error}
-        onConfirm={() => run(() => setUserActive(id, false), () => setConfirmRevoke(false))}
+        onConfirm={() => run(() => setUserActive(id, false), "Access revoked", () => setConfirmRevoke(false))}
         onCancel={() => { setError(""); setConfirmRevoke(false); }}
       />
     </div>

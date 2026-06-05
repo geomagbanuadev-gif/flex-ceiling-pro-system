@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { AppShell } from "@/components/AppShell";
+import { fmtDate } from "@/utils/format";
 
 const money = (v: number | null) => "AED " + Number(v ?? 0).toLocaleString("en-AE", { maximumFractionDigits: 0 });
 const kAed = (v: number) => (v >= 1000 ? (v / 1000).toFixed(v >= 10000 ? 0 : 1) + "k" : String(Math.round(v)));
@@ -177,7 +178,7 @@ export default async function DashboardPage() {
                   <tr key={d.id} className="relative cursor-pointer transition-colors hover:bg-slate-50">
                     <td className="px-4 py-2.5"><Link href={`/quotes/${d.id}`} className="font-medium text-navy hover:underline before:absolute before:inset-0">{d.number}</Link></td>
                     <td className="px-4 py-2.5"><span className={`rounded-full px-2 py-0.5 text-xs font-medium ${d.type === "invoice" ? "bg-gold/10 text-gold" : "bg-navy/10 text-navy"}`}>{d.type}</span></td>
-                    <td className="px-4 py-2.5 text-slate-600">{d.doc_date ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-slate-600">{fmtDate(d.doc_date)}</td>
                     <td className="px-4 py-2.5 text-slate-700">{d.client_name || "—"}</td>
                     <td className="px-4 py-2.5 text-right font-medium text-slate-900">{money(d.grand_total)}</td>
                   </tr>

@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateStatus } from "@/app/quotes/actions";
 import { Spinner } from "./Spinner";
+import { useToast } from "./Toast";
 
 const STATUSES: Record<string, string[]> = {
   quote: ["draft", "sent", "won", "lost"],
@@ -21,14 +22,20 @@ const COLORS: Record<string, string> = {
 export function StatusControl({ docId, type, current }: { docId: string; type: "quote" | "invoice"; current: string | null }) {
   const [pending, start] = useTransition();
   const router = useRouter();
+  const toast = useToast();
   const options = STATUSES[type] ?? STATUSES.quote;
   const cur = current ?? "draft";
 
   function change(status: string) {
     if (!status || status === cur) return;
     start(async () => {
-      await updateStatus(docId, status);
-      router.refresh();
+      try {
+        await updateStatus(docId, status);
+        toast(`Marked as ${status}`);
+        router.refresh();
+      } catch (e) {
+        toast(e instanceof Error ? e.message : "Failed to update status", "error");
+      }
     });
   }
 

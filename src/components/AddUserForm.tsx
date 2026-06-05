@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createUser } from "@/app/users/actions";
 import { Spinner } from "./Spinner";
+import { useToast } from "./Toast";
 
 const ROLES = [
   { v: "staff", l: "Full staff" },
@@ -30,6 +31,7 @@ export function AddUserForm() {
   const [role, setRole] = useState("staff");
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const toast = useToast();
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -41,12 +43,14 @@ export function AddUserForm() {
       try {
         await createUser(email, password, role);
         setMsg({ ok: true, text: `✓ Added ${mail} (${levelLabel}). Share this login →  email: ${mail}   password: ${usedPw}` });
+        toast(`Added ${mail}`);
         setEmail("");
         setPassword("");
         setRole("staff");
         router.refresh();
       } catch (err) {
         setMsg({ ok: false, text: err instanceof Error ? err.message : "Failed to add user" });
+        toast(err instanceof Error ? err.message : "Failed to add user", "error");
       }
     });
   }

@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { SignOutButton } from "./SignOutButton";
 import { MobileNav } from "./MobileNav";
+import { FlashToast } from "./FlashToast";
 import { cn } from "@/utils/cn";
 import { getProfile, canSeeQuotes, canSeeInvoices } from "@/utils/profile";
 
@@ -52,6 +54,7 @@ export async function AppShell({
 
   return (
     <div className="flex h-screen flex-col">
+      <Suspense fallback={null}><FlashToast /></Suspense>
       {/* Fixed header */}
       <header className="z-20 shrink-0 bg-navy text-white shadow-sm">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
@@ -90,7 +93,7 @@ export async function AppShell({
 
       {/* Scrollable content */}
       <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-6xl px-6 py-7">
+        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-7">
           {(title || action) && (
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
               {title && <h1 className="text-xl font-semibold text-slate-900">{title}</h1>}
