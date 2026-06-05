@@ -47,12 +47,13 @@ const s = StyleSheet.create({
   totGrand: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 6, paddingHorizontal: 6, backgroundColor: NAVY },
   totGrandTxt: { color: "#fff", fontFamily: "Helvetica-Bold", fontSize: 11 },
 
-  bank: { marginTop: 18, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
-  bankCol: { flex: 1 },
+  bank: { marginTop: 18, flexDirection: "row", alignItems: "flex-end" },
+  bankCol: { width: "70%" },
   bankRow: { flexDirection: "row", marginBottom: 2 },
   bankLabel: { width: 90, fontSize: 8, fontFamily: "Helvetica-Bold", color: NAVY },
-  bankVal: { fontSize: 8 },
-  stamp: { width: 92, height: 92, marginLeft: 12 },
+  bankVal: { fontSize: 8, flex: 1 },
+  stampBox: { width: "30%", alignItems: "flex-end", paddingRight: 4 },
+  stamp: { width: 82, height: 84 },
 });
 
 const money = (v: number | null | undefined) =>
@@ -101,7 +102,7 @@ export function InvoiceDocument({ doc, items, settings, logoSrc, stampSrc }: { d
           <View style={[s.infoRow, { borderBottomWidth: 0 }]}><Text style={s.infoLabel}>Email</Text><Text style={s.infoVal}>{doc.client_email ?? ""}</Text></View>
         </View>
 
-        <View style={s.th}>
+        <View style={s.th} fixed>
           <Text style={[s.thCell, s.cDesc]}>Description</Text>
           <Text style={[s.thCell, s.cQty]}>Qty</Text>
           <Text style={[s.thCell, s.cUnit]}>Unit</Text>
@@ -118,6 +119,7 @@ export function InvoiceDocument({ doc, items, settings, logoSrc, stampSrc }: { d
           </View>
         ))}
 
+        <View wrap={false}>
         <View style={s.bottom}>
           <View style={s.words}>
             <Text style={s.wordsLabel}>Amount in words</Text>
@@ -138,7 +140,10 @@ export function InvoiceDocument({ doc, items, settings, logoSrc, stampSrc }: { d
             <View style={s.bankRow}><Text style={s.bankLabel}>Currency</Text><Text style={s.bankVal}>{settings.bank_currency}</Text></View>
             <View style={s.bankRow}><Text style={s.bankLabel}>Bank</Text><Text style={s.bankVal}>{settings.bank_name}</Text></View>
           </View>
-          {stampSrc ? <Image style={s.stamp} src={stampSrc} /> : null}
+          <View style={s.stampBox}>
+            {stampSrc ? <Image style={s.stamp} src={stampSrc} /> : null}
+          </View>
+        </View>
         </View>
       </Page>
     </Document>

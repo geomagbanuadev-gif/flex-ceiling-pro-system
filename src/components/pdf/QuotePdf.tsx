@@ -58,12 +58,13 @@ const s = StyleSheet.create({
 
   sign: { flexDirection: "row", justifyContent: "space-between", marginTop: 18, paddingTop: 6, borderTopWidth: 1, borderTopColor: BORDER, fontSize: 8 },
 
-  bank: { marginTop: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
-  bankCol: { flex: 1 },
+  bank: { marginTop: 16, flexDirection: "row", alignItems: "flex-end" },
+  bankCol: { width: "70%" },
   bankRow: { flexDirection: "row", marginBottom: 2 },
   bankLabel: { width: 90, fontSize: 8, fontFamily: "Helvetica-Bold", color: NAVY },
-  bankVal: { fontSize: 8 },
-  stamp: { width: 92, height: 92, marginLeft: 12 },
+  bankVal: { fontSize: 8, flex: 1 },
+  stampBox: { width: "30%", alignItems: "flex-end", paddingRight: 4 },
+  stamp: { width: 82, height: 84 },
 });
 
 const money = (v: number | null | undefined) =>
@@ -132,7 +133,7 @@ export function QuoteDocument({ doc, items, settings, logoSrc, stampSrc }: { doc
         </View>
 
         {/* Items */}
-        <View style={s.th}>
+        <View style={s.th} fixed>
           <Text style={[s.thCell, s.cSr]}>SR</Text>
           <Text style={[s.thCell, s.cDesc]}>Task Description</Text>
           <Text style={[s.thCell, s.cArea]}>Area</Text>
@@ -151,7 +152,8 @@ export function QuoteDocument({ doc, items, settings, logoSrc, stampSrc }: { doc
           </View>
         ))}
 
-        {/* Totals */}
+        {/* Totals + terms + bank kept together, never split across a page */}
+        <View wrap={false}>
         <View style={s.totalsWrap}>
           <View style={s.totals}>
             <View style={s.totRow}><Text style={{ color: MUTED }}>Sub Total</Text><Text style={{ fontFamily: "Helvetica-Bold" }}>{money(doc.subtotal)}</Text></View>
@@ -186,7 +188,10 @@ export function QuoteDocument({ doc, items, settings, logoSrc, stampSrc }: { doc
             <View style={s.bankRow}><Text style={s.bankLabel}>Currency</Text><Text style={s.bankVal}>{settings.bank_currency}</Text></View>
             <View style={s.bankRow}><Text style={s.bankLabel}>Bank</Text><Text style={s.bankVal}>{settings.bank_name}</Text></View>
           </View>
-          {stampSrc ? <Image style={s.stamp} src={stampSrc} /> : null}
+          <View style={s.stampBox}>
+            {stampSrc ? <Image style={s.stamp} src={stampSrc} /> : null}
+          </View>
+        </View>
         </View>
       </Page>
     </Document>
