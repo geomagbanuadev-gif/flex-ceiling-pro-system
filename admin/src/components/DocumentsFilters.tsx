@@ -12,7 +12,7 @@ const SORTS = [
   { v: "client_name", l: "Client" },
 ];
 
-export function DocumentsFilters() {
+export function DocumentsFilters({ clients = [] }: { clients?: { id: string; name: string }[] }) {
   const router = useRouter();
   const sp = useSearchParams();
   const [pending, start] = useTransition();
@@ -21,15 +21,16 @@ export function DocumentsFilters() {
   const [q, setQ] = useState(init("q"));
   const [type, setType] = useState(init("type"));
   const [status, setStatus] = useState(init("status"));
+  const [client, setClient] = useState(init("client"));
   const [from, setFrom] = useState(init("from"));
   const [to, setTo] = useState(init("to"));
   const [min, setMin] = useState(init("min"));
   const [max, setMax] = useState(init("max"));
   const [sort, setSort] = useState(init("sort", "doc_date"));
   const [dir, setDir] = useState(init("dir", "desc"));
-  const [open, setOpen] = useState(Boolean(status || from || to || min || max));
+  const [open, setOpen] = useState(Boolean(status || client || from || to || min || max));
 
-  const activeCount = [type, status, from, to, min, max].filter(Boolean).length;
+  const activeCount = [type, status, client, from, to, min, max].filter(Boolean).length;
 
   function apply(e?: React.FormEvent) {
     e?.preventDefault();
@@ -38,6 +39,7 @@ export function DocumentsFilters() {
     set("q", q);
     set("type", type);
     set("status", status);
+    set("client", client);
     set("from", from);
     set("to", to);
     set("min", min);
@@ -47,7 +49,7 @@ export function DocumentsFilters() {
     start(() => router.push(`/quotes${p.toString() ? `?${p}` : ""}`));
   }
   function clearAll() {
-    setQ(""); setType(""); setStatus(""); setFrom(""); setTo(""); setMin(""); setMax(""); setSort("doc_date"); setDir("desc");
+    setQ(""); setType(""); setStatus(""); setClient(""); setFrom(""); setTo(""); setMin(""); setMax(""); setSort("doc_date"); setDir("desc");
     start(() => router.push("/quotes"));
   }
 
@@ -80,6 +82,13 @@ export function DocumentsFilters() {
 
       {open && (
         <div className="mt-3 grid gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <label className={lbl}>Client</label>
+            <select className={inp + " w-full"} value={client} onChange={(e) => setClient(e.target.value)}>
+              <option value="">All clients</option>
+              {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
           <div>
             <label className={lbl}>Status</label>
             <select className={inp + " w-full"} value={status} onChange={(e) => setStatus(e.target.value)}>

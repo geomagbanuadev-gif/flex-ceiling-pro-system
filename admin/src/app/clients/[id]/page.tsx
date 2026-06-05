@@ -1,0 +1,74 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { createClient } from "@/utils/supabase/server";
+import { AppShell } from "@/components/AppShell";
+import { ClientForm } from "@/components/ClientForm";
+
+const money = (v: number | null) => (v == null ? "—" : "AED " + Number(v).toLocaleString());
+
+export default async function ClientDetailPage(props: PageProps<"/clients/[id]">) {
+  const { id } = await props.params;
+  const supabase = await createClient();
+
+  const [clientRes, docsRes] = await Promise.all([
+    supabase.from("clients").select("*").eq("id", id).maybeSingle(),
+    supabase.from("documents").select("id, number, type, doc_date, grand_total, status").eq("client_id", id).order("doc_date", { ascending: false, nullsFirst: false }),
+  ]);
+
+  const client = clientRes.data;
+  if (!client) notFound();
+  const docs = docsRes.data ?? [];
+  const totalValue = docs.reduce((s, d) => s + (Number(d.grand_total) || 0), 0);
+
+  return (
+    <AppShell
+      active="clients"
+      title={client.name}
+      action={<Link href="/clients" className="text-sm font-medium text-navy-600 hover:underline">← All clients</Link>}
+    >
+      <div className="grid gap-6 lg:grid-cols-5">
+        <div className="lg:col-span-3">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Client details</h2>
+          <ClientForm client={client} />
+        </div>
+
+        <div className="lg:col-span-2">
+          <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <p className="text-3xl font-semibold text-slate-900">{docs.length}</p>
+            <p className="text-sm text-slate-500">documents · {money(totalValue)} total</p>
+            <Link href={`/quotes?client=${id}`} className="mt-3 inline-block text-sm font-medium text-navy-600 hover:underline">
+              Filter documents by this client →
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <section className="mt-8">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Documents for this client</h2>
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <table className="w-full text-sm">
+            <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-4 py-3">Number</th>
+                <th className="px-4 py-3">Type</th>
+                <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {docs.map((d) => (
+                <tr key={d.id} className="hover:bg-slate-50">
+                  <td className="px-4 py-2.5"><Link href={`/quotes/${d.id}`} className="font-medium text-navy hover:underline">{d.number}</Link></td>
+                  <td className="px-4 py-2.5"><span className="text-xs capitalize text-slate-500">{d.type}</span></td>
+                  <td className="px-4 py-2.5 text-slate-600">{d.doc_date ?? "—"}</td>
+                  <td className="px-4 py-2.5 text-right font-medium text-slate-900">{money(d.grand_total)}</td>
+                </tr>
+              ))}
+              {docs.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-400">No documents yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </AppShell>
+  );
+}

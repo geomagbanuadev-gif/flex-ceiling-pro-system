@@ -11,7 +11,7 @@ export default async function DocumentsPage(props: PageProps<"/quotes">) {
   const sp = await props.searchParams;
   const str = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
 
-  const q = str("q"), type = str("type"), status = str("status");
+  const q = str("q"), type = str("type"), status = str("status"), client = str("client");
   const from = str("from"), to = str("to"), min = str("min"), max = str("max");
   const sort = SORT_COLS.includes(str("sort")) ? str("sort") : "doc_date";
   const asc = str("dir") === "asc";
@@ -25,6 +25,7 @@ export default async function DocumentsPage(props: PageProps<"/quotes">) {
   if (q) query = query.or(`client_name.ilike.%${q}%,number.ilike.%${q}%`);
   if (type) query = query.eq("type", type);
   if (status) query = query.eq("status", status);
+  if (client) query = query.eq("client_id", client);
   if (from) query = query.gte("doc_date", from);
   if (to) query = query.lte("doc_date", to);
   if (min) query = query.gte("grand_total", Number(min));
@@ -32,6 +33,7 @@ export default async function DocumentsPage(props: PageProps<"/quotes">) {
   query = query.order(sort, { ascending: asc, nullsFirst: false }).range(fromIdx, fromIdx + PAGE_SIZE - 1);
 
   const { data: docs, count } = await query;
+  const { data: clientList } = await supabase.from("clients").select("id, name").order("name");
   const total = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const showingFrom = total === 0 ? 0 : fromIdx + 1;
@@ -54,7 +56,7 @@ export default async function DocumentsPage(props: PageProps<"/quotes">) {
         </Link>
       }
     >
-      <DocumentsFilters />
+      <DocumentsFilters clients={clientList ?? []} />
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full text-sm">
