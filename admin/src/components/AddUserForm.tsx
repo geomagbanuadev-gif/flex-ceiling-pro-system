@@ -12,6 +12,16 @@ const ROLES = [
   { v: "super", l: "Super" },
 ];
 
+// Strong, readable temp password (no ambiguous chars like O/0, l/1).
+function generatePassword(len = 14) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789@#$%&*";
+  const arr = new Uint32Array(len);
+  crypto.getRandomValues(arr);
+  let out = "";
+  for (let i = 0; i < len; i++) out += chars[arr[i] % chars.length];
+  return out;
+}
+
 export function AddUserForm() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -24,10 +34,13 @@ export function AddUserForm() {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
+    const mail = email.trim().toLowerCase();
+    const usedPw = password;
+    const levelLabel = ROLES.find((r) => r.v === role)?.l;
     start(async () => {
       try {
         await createUser(email, password, role);
-        setMsg({ ok: true, text: `Added ${email.trim().toLowerCase()} as ${ROLES.find((r) => r.v === role)?.l}.` });
+        setMsg({ ok: true, text: `✓ Added ${mail} (${levelLabel}). Share this login →  email: ${mail}   password: ${usedPw}` });
         setEmail("");
         setPassword("");
         setRole("staff");
@@ -62,7 +75,12 @@ export function AddUserForm() {
         </div>
         <div>
           <label className={lbl}>Temporary password</label>
-          <input type="text" required className={inp} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="min 8 characters" />
+          <div className="flex gap-2">
+            <input type="text" required className={inp} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="min 8 characters" />
+            <button type="button" onClick={() => setPassword(generatePassword())} className="shrink-0 rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-700 hover:bg-slate-100" title="Generate a strong password">
+              Generate
+            </button>
+          </div>
         </div>
         <div>
           <label className={lbl}>Access level (pages they can use)</label>
