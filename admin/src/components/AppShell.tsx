@@ -7,6 +7,7 @@ const NAV = [
   { href: "/", label: "Dashboard", key: "dashboard" },
   { href: "/quotes", label: "Documents", key: "documents" },
   { href: "/clients", label: "Clients", key: "clients" },
+  { href: "/settings", label: "Settings", key: "settings" },
 ];
 
 export async function AppShell({

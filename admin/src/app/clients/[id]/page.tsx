@@ -26,7 +26,12 @@ export default async function ClientDetailPage(props: PageProps<"/clients/[id]">
     <AppShell
       active="clients"
       title={client.name}
-      action={<Link href="/clients" className="text-sm font-medium text-navy-600 hover:underline">← All clients</Link>}
+      action={
+        <div className="flex items-center gap-3">
+          <Link href="/clients" className="text-sm font-medium text-navy-600 hover:underline">← All clients</Link>
+          <Link href={`/quotes/new?client=${client.id}`} className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy-700">+ New quotation</Link>
+        </div>
+      }
     >
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="lg:col-span-3">

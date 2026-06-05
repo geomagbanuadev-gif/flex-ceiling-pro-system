@@ -46,22 +46,24 @@ export function QuoteForm({
   nextNumber,
   defaults,
   initial,
+  presetClient,
 }: {
   clients: Client[];
   nextNumber: string;
   defaults: { paymentTerms: string; validityDays: number; vatRate: number };
   initial?: QuoteInitial;
+  presetClient?: Client;
 }) {
   const isInvoice = initial?.type === "invoice";
   const docWord = isInvoice ? "Tax Invoice" : "Quotation";
 
-  const [clientId, setClientId] = useState<string | null>(initial?.clientId ?? null);
-  const [clientName, setClientName] = useState(initial?.clientName ?? "");
-  const [clientTrn, setClientTrn] = useState(initial?.clientTrn ?? "");
-  const [clientAddress, setClientAddress] = useState(initial?.clientAddress ?? "");
-  const [clientEmail, setClientEmail] = useState(initial?.clientEmail ?? "");
-  const [contactPerson, setContactPerson] = useState(initial?.contactPerson ?? "");
-  const [contactPhone, setContactPhone] = useState(initial?.contactPhone ?? "");
+  const [clientId, setClientId] = useState<string | null>(initial?.clientId ?? presetClient?.id ?? null);
+  const [clientName, setClientName] = useState(initial?.clientName ?? presetClient?.name ?? "");
+  const [clientTrn, setClientTrn] = useState(initial?.clientTrn ?? presetClient?.trn ?? "");
+  const [clientAddress, setClientAddress] = useState(initial?.clientAddress ?? presetClient?.address ?? "");
+  const [clientEmail, setClientEmail] = useState(initial?.clientEmail ?? presetClient?.email ?? "");
+  const [contactPerson, setContactPerson] = useState(initial?.contactPerson ?? presetClient?.contact_person ?? "");
+  const [contactPhone, setContactPhone] = useState(initial?.contactPhone ?? presetClient?.contact_phone ?? "");
   const [number, setNumber] = useState(initial?.number ?? nextNumber);
   const [date, setDate] = useState(initial?.date ?? new Date().toISOString().slice(0, 10));
   const [reference, setReference] = useState(initial?.reference ?? "");

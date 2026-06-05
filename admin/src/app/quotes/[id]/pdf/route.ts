@@ -35,7 +35,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const doc = docRes.data;
   const items = itemsRes.data ?? [];
-  const settings = settingsRes.data ?? {};
+  // Prefer the supplier details frozen onto the document at issue time;
+  // fall back to current company settings for older docs without a snapshot.
+  const settings = doc.supplier_snapshot ?? settingsRes.data ?? {};
   const isInvoice = doc.type === "invoice";
 
   const element = isInvoice

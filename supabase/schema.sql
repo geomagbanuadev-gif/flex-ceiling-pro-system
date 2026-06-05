@@ -74,6 +74,7 @@ create table if not exists documents (
   vat_amount     numeric default 0,
   grand_total    numeric default 0,
   amount_in_words text,
+  supplier_snapshot jsonb,     -- frozen company/bank/TRN details as printed at issue time
   notes          text,
   source_file    text,        -- original Excel filename (for imported records)
   imported       boolean default false,

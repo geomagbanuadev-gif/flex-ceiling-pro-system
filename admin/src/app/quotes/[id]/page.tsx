@@ -17,6 +17,15 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
   if (!doc) notFound();
   const { data: items } = await supabase.from("document_items").select("*").eq("document_id", id).order("sort_order");
 
+  // quote validity / expiry
+  let expiry: { until: string; expired: boolean } | null = null;
+  if (doc.type === "quote" && doc.doc_date && doc.validity_days) {
+    const d = new Date(doc.doc_date);
+    d.setDate(d.getDate() + doc.validity_days);
+    const until = d.toISOString().slice(0, 10);
+    expiry = { until, expired: until < new Date().toISOString().slice(0, 10) };
+  }
+
   return (
     <AppShell
       active="documents"
@@ -31,9 +40,14 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
     >
       {/* Status + lifecycle actions */}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-        <div className="flex items-center gap-2 text-sm text-slate-500">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
           <span className="font-medium">Status</span>
           <StatusControl docId={id} type={doc.type === "invoice" ? "invoice" : "quote"} current={doc.status} />
+          {expiry && (
+            <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${expiry.expired ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-600"}`}>
+              {expiry.expired ? `Expired ${expiry.until}` : `Valid until ${expiry.until}`}
+            </span>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {doc.type === "quote" && <ConvertButton quoteId={id} />}

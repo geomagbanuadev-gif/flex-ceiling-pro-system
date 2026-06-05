@@ -8,6 +8,21 @@ import { amountInWords } from "@/utils/amountInWords";
 const QUOTE_STATUSES = ["draft", "sent", "won", "lost"];
 const INVOICE_STATUSES = ["draft", "sent", "paid", "lost"];
 
+// Supplier (company) details are snapshotted onto each document at creation,
+// so editing company Settings never changes already-issued quotes/invoices.
+const SUPPLIER_COLS =
+  "legal_name, address, email, phone, trn, bank_account_name, bank_account_no, bank_iban, bank_currency, bank_name";
+const SNAPSHOT_KEYS = [
+  "legal_name", "address", "email", "phone", "trn",
+  "bank_account_name", "bank_account_no", "bank_iban", "bank_currency", "bank_name",
+];
+function snapshotOf(s: Record<string, unknown> | null | undefined) {
+  if (!s) return null;
+  const out: Record<string, string | null> = {};
+  for (const k of SNAPSHOT_KEYS) out[k] = (s[k] as string | null) ?? null;
+  return out;
+}
+
 export type QuoteItemInput = {
   description: string;
   area: number | null;
@@ -101,15 +116,17 @@ export async function saveQuote(p: QuotePayload) {
 
   let docId = p.id;
   if (docId) {
-    // edit: update fields but keep the existing status
+    // edit: update fields but keep the existing status AND original supplier snapshot
     const { error: upErr } = await supabase.from("documents").update(docFields).eq("id", docId);
     if (upErr) throw new Error(`Could not save document: ${upErr.message}`);
     const { error: delErr } = await supabase.from("document_items").delete().eq("document_id", docId);
     if (delErr) throw new Error(`Could not update line items: ${delErr.message}`);
   } else {
+    // new document: freeze the current company details onto it
+    const { data: settings } = await supabase.from("company_settings").select(SUPPLIER_COLS).eq("id", 1).maybeSingle();
     const { data: doc, error } = await supabase
       .from("documents")
-      .insert({ ...docFields, status: "draft", created_by: user.id })
+      .insert({ ...docFields, status: "draft", supplier_snapshot: snapshotOf(settings), created_by: user.id })
       .select("id")
       .single();
     if (error) throw new Error(`Could not create document: ${error.message}`);
@@ -158,7 +175,7 @@ export async function convertToInvoice(quoteId: string) {
   const { data: items } = await supabase.from("document_items").select("*").eq("document_id", quoteId).order("sort_order");
 
   // next invoice number from the invoice prefix sequence
-  const { data: settings } = await supabase.from("company_settings").select("invoice_prefix").eq("id", 1).maybeSingle();
+  const { data: settings } = await supabase.from("company_settings").select(`invoice_prefix, ${SUPPLIER_COLS}`).eq("id", 1).maybeSingle();
   const prefix = settings?.invoice_prefix ?? "INV-";
   const { data: nums } = await supabase.from("documents").select("number").eq("type", "invoice");
   let max = 0;
@@ -189,6 +206,7 @@ export async function convertToInvoice(quoteId: string) {
       grand_total: quote.grand_total,
       amount_in_words: amountInWords(quote.grand_total),
       converted_from: quoteId,
+      supplier_snapshot: snapshotOf(settings),
       created_by: user.id,
     })
     .select("id")
@@ -251,7 +269,7 @@ export async function duplicateDocument(docId: string) {
   const { data: items } = await supabase.from("document_items").select("*").eq("document_id", docId).order("sort_order");
 
   const type = src.type === "invoice" ? "invoice" : "quote";
-  const { data: settings } = await supabase.from("company_settings").select("quote_prefix, invoice_prefix").eq("id", 1).maybeSingle();
+  const { data: settings } = await supabase.from("company_settings").select(`quote_prefix, invoice_prefix, ${SUPPLIER_COLS}`).eq("id", 1).maybeSingle();
   const prefix = type === "invoice" ? settings?.invoice_prefix ?? "INV-" : settings?.quote_prefix ?? "1000-";
   const { data: nums } = await supabase.from("documents").select("number").eq("type", type);
   let max = 0;
@@ -284,6 +302,7 @@ export async function duplicateDocument(docId: string) {
       grand_total: src.grand_total,
       amount_in_words: type === "invoice" ? amountInWords(src.grand_total) : null,
       notes: src.notes,
+      supplier_snapshot: snapshotOf(settings),
       created_by: user.id,
     })
     .select("id")
@@ -316,7 +335,7 @@ export async function newInvoice() {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  const { data: settings } = await supabase.from("company_settings").select("invoice_prefix").eq("id", 1).maybeSingle();
+  const { data: settings } = await supabase.from("company_settings").select(`invoice_prefix, ${SUPPLIER_COLS}`).eq("id", 1).maybeSingle();
   const prefix = settings?.invoice_prefix ?? "INV-";
   const { data: nums } = await supabase.from("documents").select("number").eq("type", "invoice");
   let max = 0;
@@ -328,7 +347,7 @@ export async function newInvoice() {
 
   const { data: inv, error } = await supabase
     .from("documents")
-    .insert({ type: "invoice", number, doc_date: new Date().toISOString().slice(0, 10), status: "draft", vat_rate: 5, created_by: user.id })
+    .insert({ type: "invoice", number, doc_date: new Date().toISOString().slice(0, 10), status: "draft", vat_rate: 5, supplier_snapshot: snapshotOf(settings), created_by: user.id })
     .select("id")
     .single();
   if (error) throw new Error(error.message);
