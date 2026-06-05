@@ -30,7 +30,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     return new Response("Document not found", { status: 404 });
   }
 
-  const logoSrc = asset("logo-mark.png");
+  const logoSrc = asset("logo-full.png");
   const stampSrc = asset("stamp.png");
 
   const doc = docRes.data;

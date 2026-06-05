@@ -19,7 +19,7 @@ const s = StyleSheet.create({
   coName: { fontSize: 13, fontFamily: "Helvetica-Bold", color: NAVY },
   coLine: { fontSize: 8, color: MUTED, marginTop: 1 },
   trn: { fontSize: 8, fontFamily: "Helvetica-Bold", color: NAVY, marginTop: 2 },
-  logo: { width: 64 },
+  logo: { width: 120 },
   goldRule: { height: 2, backgroundColor: GOLD, marginTop: 10, marginBottom: 12 },
 
   titleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
@@ -100,7 +100,7 @@ export function QuoteDocument({ doc, items, settings, logoSrc, stampSrc }: { doc
         <View style={s.header}>
           <View style={{ flex: 1, paddingRight: 12 }}>
             <Text style={s.coName}>{settings.legal_name}</Text>
-            <Text style={s.coLine}>{settings.address}</Text>
+            <Text style={[s.coLine, { marginTop: 4 }]}>{settings.address}</Text>
             <Text style={s.coLine}>{settings.email}  ·  {settings.phone}</Text>
             <Text style={s.trn}>TRN: {settings.trn}</Text>
           </View>

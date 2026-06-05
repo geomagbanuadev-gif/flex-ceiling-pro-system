@@ -101,9 +101,9 @@ async function DocumentsTable({ sp }: { sp: Record<string, string | string[] | u
           </thead>
           <tbody className="divide-y divide-slate-100">
             {(docs ?? []).map((d) => (
-              <tr key={d.id} className="transition-colors hover:bg-slate-50">
+              <tr key={d.id} className="relative cursor-pointer transition-colors hover:bg-slate-50">
                 <td className="px-4 py-2.5">
-                  <Link href={`/quotes/${d.id}`} className="font-medium text-navy hover:underline">{d.number}</Link>
+                  <Link href={`/quotes/${d.id}`} className="font-medium text-navy hover:underline before:absolute before:inset-0">{d.number}</Link>
                 </td>
                 <td className="px-4 py-2.5">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${d.type === "invoice" ? "bg-gold/10 text-gold" : "bg-navy/10 text-navy"}`}>{d.type}</span>

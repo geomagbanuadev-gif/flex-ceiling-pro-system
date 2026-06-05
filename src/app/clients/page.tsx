@@ -77,9 +77,9 @@ async function ClientsTable({ sp }: { sp: Record<string, string | string[] | und
             {(clients ?? []).map((c) => {
               const s = stats.get(c.id);
               return (
-                <tr key={c.id} className="transition-colors hover:bg-slate-50">
+                <tr key={c.id} className="relative cursor-pointer transition-colors hover:bg-slate-50">
                   <td className="px-4 py-2.5">
-                    <Link href={`/clients/${c.id}`} className="font-medium text-navy hover:underline">{c.name}</Link>
+                    <Link href={`/clients/${c.id}`} className="font-medium text-navy hover:underline before:absolute before:inset-0">{c.name}</Link>
                   </td>
                   <td className="px-4 py-2.5 text-slate-500">{c.trn || <span className="text-amber-500">—</span>}</td>
                   <td className="px-4 py-2.5 text-slate-600">{c.contact_person || c.contact_phone || "—"}</td>

@@ -174,8 +174,8 @@ export default async function DashboardPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {(recentRes.data ?? []).map((d) => (
-                  <tr key={d.id} className="transition-colors hover:bg-slate-50">
-                    <td className="px-4 py-2.5"><Link href={`/quotes/${d.id}`} className="font-medium text-navy hover:underline">{d.number}</Link></td>
+                  <tr key={d.id} className="relative cursor-pointer transition-colors hover:bg-slate-50">
+                    <td className="px-4 py-2.5"><Link href={`/quotes/${d.id}`} className="font-medium text-navy hover:underline before:absolute before:inset-0">{d.number}</Link></td>
                     <td className="px-4 py-2.5"><span className={`rounded-full px-2 py-0.5 text-xs font-medium ${d.type === "invoice" ? "bg-gold/10 text-gold" : "bg-navy/10 text-navy"}`}>{d.type}</span></td>
                     <td className="px-4 py-2.5 text-slate-600">{d.doc_date ?? "—"}</td>
                     <td className="px-4 py-2.5 text-slate-700">{d.client_name || "—"}</td>
