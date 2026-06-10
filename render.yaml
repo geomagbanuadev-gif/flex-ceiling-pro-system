@@ -1,0 +1,24 @@
+# Render Blueprint for the FlexCeiling Pro internal admin system.
+# In Render: New → Blueprint → connect this repo. It reads this file.
+# The 3 secrets below are marked sync:false → you paste them in the Render
+# dashboard (they are never stored in the repo).
+services:
+  - type: web
+    name: flexceiling-admin
+    runtime: node
+    region: frankfurt          # closest Render region to the UAE
+    plan: free                 # free = sleeps when idle (~30s first load). Change to "starter" (~$7/mo) for always-on.
+    branch: main
+    buildCommand: npm ci && npm run build
+    startCommand: npm start    # next start binds to Render's $PORT automatically
+    healthCheckPath: /login
+    autoDeploy: true           # redeploys on every push to main
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
