@@ -4,54 +4,47 @@ This is an **internal company tool**. Access is controlled by the app itself:
 public sign-ups are OFF in Supabase, so the ONLY people who can log in are the
 users a super admin adds on the in-app **Users** page; roles + RLS enforce what
 each can see. It is **not** a public/commercial site.
-Target URL: **https://admin.flex-ceiling-pro.com**
 
-Stack: Next.js (Node) on **Render**, domain via **Cloudflare DNS**.
+**Host:** Vercel (runs the app — Next.js native, PDFs work). **Domain:** Cloudflare
+(`admin.flex-ceiling-pro.com` stays on your Cloudflare, just a DNS record).
+**CD:** every push to `main` auto-deploys.
 
-> **Why no Cloudflare Access?** It keeps its own separate email allowlist, which
-> would conflict with the app's user management — a user you add in-app would be
-> blocked until you also added them in Cloudflare. The app's login (with sign-ups
-> off) is the single source of truth, so we rely on that instead.
+> Your domain never leaves Cloudflare. Vercel only runs the code; a CNAME in
+> Cloudflare points the subdomain at it.
 
 ---
 
-## 1 — Deploy on Render
+## Env vars (have these ready)
+```
+NEXT_PUBLIC_SUPABASE_URL             = https://zpcmidxddczjsuvlcouv.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = sb_publishable_wlsVVQLnZX9gdr2yxC6ngA_7SA5UPG4
+SUPABASE_SERVICE_ROLE_KEY            = (secret — the long eyJ… value from admin/.env.local)
+```
 
-1. Go to **render.com** → sign up (you can use GitHub).
-2. **New → Blueprint** → connect the GitHub repo **`flex-ceiling-pro-system`** → Render reads `render.yaml`.
-3. When prompted, set the 3 environment variables (these are **secrets**, kept out of the repo):
-   | Key | Value |
-   |---|---|
-   | `NEXT_PUBLIC_SUPABASE_URL` | `https://zpcmidxddczjsuvlcouv.supabase.co` |
-   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | your `sb_publishable_…` key |
-   | `SUPABASE_SERVICE_ROLE_KEY` | your **service_role** key (Supabase → Settings → API) |
-4. **Apply / Create** → Render builds and starts it. You'll get a URL like `https://flexceiling-admin.onrender.com`. Open it and confirm the **login** page loads.
-   - Free plan "sleeps" when idle (~30 s first load). For always-on, change `plan: free` → `plan: starter` (~$7/mo) in `render.yaml` (or in the dashboard).
-5. Every push to `main` now auto-deploys.
+## 1 — Deploy on Vercel
+1. Go to **https://vercel.com** → **Sign Up / Log in with GitHub** (the account that owns the repo).
+2. **Add New… → Project** → **Import** the **`flex-ceiling-pro-system`** repo.
+3. Vercel auto-detects **Framework Preset: Next.js** (leave Root Directory = `./`, build/output defaults).
+4. Open **Environment Variables** → add the **3** above (apply to **Production**).
+5. **Deploy**. After ~2–4 min you get a `…vercel.app` URL → open it → see your **login** page. 🎉
+   - From now on, every push to `main` auto-deploys.
+   - Note: Vercel's free **Hobby** plan is meant for non-commercial use. For a business tool the clean option is **Pro** (~$20/mo); Hobby works fine to get it live first.
 
 ## 2 — Point your Cloudflare domain at it
+1. Vercel → your project → **Settings → Domains** → add **`admin.flex-ceiling-pro.com`**. Vercel shows the DNS record to create (for a subdomain it's usually **CNAME → `cname.vercel-dns.com`**).
+2. **Cloudflare → flex-ceiling-pro.com → DNS → Add record**: **CNAME**, Name **`admin`**, Target **`cname.vercel-dns.com`** (use exactly what Vercel shows), Proxy **DNS only (grey cloud)** so Vercel manages SSL.
+3. Wait a few minutes → Vercel verifies + issues SSL → **https://admin.flex-ceiling-pro.com** loads. ✅
 
-1. In **Render → your service → Settings → Custom Domains**, add **`admin.flex-ceiling-pro.com`**. Render shows a target host (e.g. `flexceiling-admin.onrender.com`).
-2. In **Cloudflare → flex-ceiling-pro.com → DNS → Add record**:
-   - Type **CNAME**, Name **`admin`**, Target = the Render target host, Proxy **DNS only (grey cloud)** first.
-3. Wait for Render to verify the domain + issue SSL (a few minutes). Confirm `https://admin.flex-ceiling-pro.com` loads the login.
-   - (Optional) You can switch the Cloudflare proxy to **orange** afterwards if you want Cloudflare in front; not required.
-
-## 3 — Manage who can log in (in the app)
-
-No extra gate needed. To give someone access: **app → Users → Add user** (email +
-temp password + access level). To remove access: **Revoke**. Because Supabase
-sign-ups are OFF, only people you add here can ever log in.
-
-## 4 — Verify
-- Open `https://admin.flex-ceiling-pro.com` → the **login** page loads.
-- A user you added in **Users** can log in; nobody else can (no self-sign-up).
+## 3 — Verify & lock
+1. Log in (super account) → test a quote → **Open/Print PDF** → **Share**.
+2. Supabase → Authentication → **"Allow new users to sign up" = OFF** (keeps it internal — only users you add in the app can log in).
 
 ---
 
 ## Security checklist
-- ✅ `SUPABASE_SERVICE_ROLE_KEY` only in Render env (secret) — never in the repo/browser.
-- ✅ Supabase Auth → public **sign-ups OFF** (only admin-created users can log in). **This is what keeps it internal — make sure it's off.**
-- ✅ RLS enabled (roles enforce quotes/invoices/super access).
-- ✅ Users managed in-app (Users page) — single source of truth.
-- ✅ Share links remain unguessable + token-scoped (one document only).
+- ✅ `SUPABASE_SERVICE_ROLE_KEY` only in Vercel env (secret) — never in the repo/browser.
+- ✅ Supabase public **sign-ups OFF**.
+- ✅ RLS + roles enforce access; users managed in the app's Users page.
+- ✅ Share links unguessable + token-scoped (one document only).
+
+*(A Render blueprint `render.yaml` is also in the repo if you ever switch hosts.)*
