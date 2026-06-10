@@ -1,11 +1,17 @@
 # Deploying the internal admin system
 
-This is an **internal company tool**. It is gated by app login + roles + RLS, and
-(after step 3) by a Cloudflare Access email allowlist. It is **not** a public/
-commercial site. Target URL: **https://admin.flex-ceiling-pro.com**
+This is an **internal company tool**. Access is controlled by the app itself:
+public sign-ups are OFF in Supabase, so the ONLY people who can log in are the
+users a super admin adds on the in-app **Users** page; roles + RLS enforce what
+each can see. It is **not** a public/commercial site.
+Target URL: **https://admin.flex-ceiling-pro.com**
 
-Stack: Next.js (Node) on **Render**, domain via **Cloudflare DNS**, extra gate via
-**Cloudflare Access (Zero Trust)**.
+Stack: Next.js (Node) on **Render**, domain via **Cloudflare DNS**.
+
+> **Why no Cloudflare Access?** It keeps its own separate email allowlist, which
+> would conflict with the app's user management — a user you add in-app would be
+> blocked until you also added them in Cloudflare. The app's login (with sign-ups
+> off) is the single source of truth, so we rely on that instead.
 
 ---
 
@@ -31,23 +37,21 @@ Stack: Next.js (Node) on **Render**, domain via **Cloudflare DNS**, extra gate v
 3. Wait for Render to verify the domain + issue SSL (a few minutes). Confirm `https://admin.flex-ceiling-pro.com` loads the login.
    - (Optional) You can switch the Cloudflare proxy to **orange** afterwards if you want Cloudflare in front; not required.
 
-## 3 — Lock it to your team (Cloudflare Access)
+## 3 — Manage who can log in (in the app)
 
-1. In **Cloudflare dashboard → Zero Trust** (one-time free setup of a team name).
-2. **Access → Applications → Add an application → Self-hosted**.
-   - Application domain: **`admin.flex-ceiling-pro.com`**
-3. Add a **policy**: Action **Allow**, Include → **Emails** → list your team's emails (or **Emails ending in** `@yourcompany`).
-4. Save. Now only those emails can even **reach** the app; everyone else is blocked by Cloudflare before the page loads. (Your app's own login still applies on top.)
+No extra gate needed. To give someone access: **app → Users → Add user** (email +
+temp password + access level). To remove access: **Revoke**. Because Supabase
+sign-ups are OFF, only people you add here can ever log in.
 
 ## 4 — Verify
-- Open `https://admin.flex-ceiling-pro.com` from an allowed account → Access prompt → app login → in.
-- From a non-allowed email/incognito → blocked by Cloudflare Access.
+- Open `https://admin.flex-ceiling-pro.com` → the **login** page loads.
+- A user you added in **Users** can log in; nobody else can (no self-sign-up).
 
 ---
 
 ## Security checklist
 - ✅ `SUPABASE_SERVICE_ROLE_KEY` only in Render env (secret) — never in the repo/browser.
-- ✅ Supabase Auth → public **sign-ups OFF** (only admin-created users).
+- ✅ Supabase Auth → public **sign-ups OFF** (only admin-created users can log in). **This is what keeps it internal — make sure it's off.**
 - ✅ RLS enabled (roles enforce quotes/invoices/super access).
-- ✅ Cloudflare Access allowlist in front (internal-only).
+- ✅ Users managed in-app (Users page) — single source of truth.
 - ✅ Share links remain unguessable + token-scoped (one document only).
