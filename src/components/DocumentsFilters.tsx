@@ -99,7 +99,7 @@ export function DocumentsFilters({ clients = [], lockedType }: { clients?: { id:
       </div>
 
       {open && (
-        <div className="mt-3 grid gap-4 rounded-2xl bg-white p-4 shadow-[var(--shadow-card)] ring-1 ring-slate-200/70 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-3 grid gap-4 rounded-2xl bg-white p-4 shadow-[var(--shadow-card)] ring-1 ring-slate-200 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className={lbl}>Client</label>
             <select className={inp + " w-full"} value={client} onChange={(e) => setClient(e.target.value)}>

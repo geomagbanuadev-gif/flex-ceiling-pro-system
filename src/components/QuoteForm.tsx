@@ -172,7 +172,7 @@ export function QuoteForm({
   return (
     <div className="space-y-6">
       {/* Client */}
-      <section className="rounded-2xl bg-white p-6 shadow-[var(--shadow-card)] ring-1 ring-slate-200/70">
+      <section className="rounded-2xl bg-white p-6 shadow-[var(--shadow-card)] ring-1 ring-slate-200">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Client</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -212,7 +212,7 @@ export function QuoteForm({
       </section>
 
       {/* Quote details */}
-      <section className="rounded-2xl bg-white p-6 shadow-[var(--shadow-card)] ring-1 ring-slate-200/70">
+      <section className="rounded-2xl bg-white p-6 shadow-[var(--shadow-card)] ring-1 ring-slate-200">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{docWord} details</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
@@ -231,11 +231,11 @@ export function QuoteForm({
       </section>
 
       {/* Line items */}
-      <section className="rounded-2xl bg-white p-6 shadow-[var(--shadow-card)] ring-1 ring-slate-200/70">
+      <section className="rounded-2xl bg-white p-6 shadow-[var(--shadow-card)] ring-1 ring-slate-200">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Line items</h2>
-            <p className="mt-0.5 text-xs text-slate-400">Tip: start a description line with <span className="font-mono text-red-500">*</span> to print that line in red.</p>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Line items</h2>
+            <p className="mt-0.5 text-xs text-slate-500">Tip: start a description line with <span className="font-mono text-red-500">*</span> to print that line in red.</p>
           </div>
           <button type="button" onClick={() => setItems((p) => [...p, emptyItem()])} className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-slate-50">+ Add row</button>
         </div>
@@ -262,11 +262,11 @@ export function QuoteForm({
             {isProforma && (
               <div className="mt-1 space-y-2 border-t border-dashed border-slate-300 pt-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Advance Payment{advancePct ? <span className="ml-1 text-xs text-slate-400">({advancePct}%)</span> : null}</span>
+                  <span className="text-slate-500">Advance Payment{advancePct ? <span className="ml-1 text-xs text-slate-500">({advancePct}%)</span> : null}</span>
                   <span className="flex items-center gap-1">AED <input className="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1 text-right tabular-nums" inputMode="decimal" placeholder="0" value={advance} onChange={(e) => setAdvance(e.target.value)} /></span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-slate-400">Quick:</span>
+                  <span className="text-xs text-slate-500">Quick:</span>
                   {[50, 40, 10, 100].map((pct) => (
                     <button key={pct} type="button" onClick={() => setAdvancePct(pct)} className="rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-600 transition hover:border-navy-600 hover:text-navy">{pct}%</button>
                   ))}
@@ -279,8 +279,8 @@ export function QuoteForm({
       </section>
 
       {/* Terms */}
-      <section className="rounded-2xl bg-white p-6 shadow-[var(--shadow-card)] ring-1 ring-slate-200/70">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Terms &amp; notes</h2>
+      <section className="rounded-2xl bg-white p-6 shadow-[var(--shadow-card)] ring-1 ring-slate-200">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Terms &amp; notes</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
             <label className={lbl}>Payment terms</label>
@@ -298,7 +298,7 @@ export function QuoteForm({
       {/* Sticky live summary + save */}
       <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white/85 px-5 py-3.5 shadow-[var(--shadow-pop)] backdrop-blur-md">
         <div className="flex items-baseline gap-2.5">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{docWord} total</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{docWord} total</span>
           <span className="text-lg font-semibold tabular-nums text-slate-900">AED {totals.grandTotal.toLocaleString()}</span>
           {isProforma && <span className="text-xs font-medium text-red-600">· Balance AED {balanceDue.toLocaleString()}</span>}
         </div>

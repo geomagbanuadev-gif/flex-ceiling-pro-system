@@ -51,7 +51,7 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
       }
     >
       {/* Status + lifecycle actions */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white ring-1 ring-slate-200/70 px-4 py-3 shadow-[var(--shadow-card)]">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white ring-1 ring-slate-200 px-4 py-3 shadow-[var(--shadow-card)]">
         <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
           <span className="font-medium">Status</span>
           <StatusControl docId={id} type={typeKey} current={doc.status} />
@@ -72,7 +72,7 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="space-y-4">
-          <div className="rounded-2xl bg-white ring-1 ring-slate-200/70 p-5 text-sm shadow-[var(--shadow-card)]">
+          <div className="rounded-2xl bg-white ring-1 ring-slate-200 p-5 text-sm shadow-[var(--shadow-card)]">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Client</p>
             <p className="mt-2 text-base font-semibold text-slate-900">{doc.client_name}</p>
             {doc.client_trn && <p className="text-slate-600">TRN: {doc.client_trn}</p>}
@@ -81,11 +81,11 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
             {doc.client_address && <p className="text-slate-600">{doc.client_address}</p>}
             {doc.reference && <p className="mt-2 text-slate-500">{doc.reference}</p>}
             {(doc.type === "invoice" || doc.type === "proforma") && doc.converted_from && (
-              <p className="mt-2 text-xs text-slate-400">Generated from quotation <Link href={`/quotes/${doc.converted_from}`} className="text-navy-600 hover:underline">#{doc.converted_from.slice(0, 8)}</Link></p>
+              <p className="mt-2 text-xs text-slate-500">Generated from quotation <Link href={`/quotes/${doc.converted_from}`} className="text-navy-600 hover:underline">#{doc.converted_from.slice(0, 8)}</Link></p>
             )}
           </div>
 
-          <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200/70 shadow-[var(--shadow-card)]">
+          <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200 shadow-[var(--shadow-card)]">
             <table className="w-full text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
@@ -121,13 +121,13 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
           </div>
           {doc.notes ? <p className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{doc.notes}</p> : null}
 
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             {emailOf(doc.created_by) ? <>Created by {emailOf(doc.created_by)}</> : "Imported"}
             {doc.updated_at ? <> · last updated {fmtDate(doc.updated_at.slice(0, 10))}{emailOf(doc.updated_by) ? ` by ${emailOf(doc.updated_by)}` : ""}</> : null}
           </p>
         </section>
 
-        <section className="rounded-2xl bg-white ring-1 ring-slate-200/70 p-2 shadow-[var(--shadow-card)]">
+        <section className="rounded-2xl bg-white ring-1 ring-slate-200 p-2 shadow-[var(--shadow-card)]">
           <iframe src={`/quotes/${id}/pdf`} className="h-[820px] w-full rounded-lg" title="PDF preview" />
         </section>
       </div>

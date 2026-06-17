@@ -84,8 +84,8 @@ export default async function DashboardPage() {
     { label: "Quote conversion", value: `${conversion}%`, tint: "bg-blue-500/10 text-blue-600", icon: I.trend, sub: `${wonCount} of ${quotes.length} won` },
   ];
 
-  const card = "rounded-2xl bg-white p-5 shadow-[var(--shadow-card)] ring-1 ring-slate-200/70";
-  const h2 = "text-xs font-semibold uppercase tracking-wider text-slate-400";
+  const card = "rounded-2xl bg-white p-5 shadow-[var(--shadow-card)] ring-1 ring-slate-200";
+  const h2 = "text-xs font-semibold uppercase tracking-wider text-slate-500";
 
   return (
     <AppShell
@@ -113,7 +113,7 @@ export default async function DashboardPage() {
                   style={{ height: `${Math.max(m.total > 0 ? 4 : 0, (m.total / monthlyMax) * 100)}%` }}
                   title={`${m.label}: ${money(m.total)}`}
                 />
-                <span className="text-xs font-medium text-slate-400">{m.label}</span>
+                <span className="text-xs font-medium text-slate-500">{m.label}</span>
               </div>
             ))}
           </div>
@@ -122,7 +122,7 @@ export default async function DashboardPage() {
         <section className={card}>
           <h2 className={h2}>Quote pipeline</h2>
           <div className="mt-4 space-y-3">
-            {pipelineOrder.length === 0 && <p className="text-sm text-slate-400">No quotes yet.</p>}
+            {pipelineOrder.length === 0 && <p className="text-sm text-slate-500">No quotes yet.</p>}
             {pipelineOrder.map((s) => (
               <div key={s}>
                 <div className="mb-1 flex justify-between text-xs">
@@ -136,10 +136,10 @@ export default async function DashboardPage() {
             ))}
           </div>
           <div className="mt-5 grid grid-cols-4 gap-1 border-t border-slate-100 pt-4 text-center text-xs">
-            <Link href="/clients" className="rounded-lg py-1.5 transition-colors hover:bg-slate-50"><span className="block text-lg font-semibold text-slate-900">{clientsRes.count ?? 0}</span><span className="text-slate-400">Clients</span></Link>
-            <Link href="/quotes?type=quote" className="rounded-lg py-1.5 transition-colors hover:bg-slate-50"><span className="block text-lg font-semibold text-slate-900">{quotes.length}</span><span className="text-slate-400">Quotes</span></Link>
-            <Link href="/quotes?type=proforma" className="rounded-lg py-1.5 transition-colors hover:bg-slate-50"><span className="block text-lg font-semibold text-slate-900">{proformas.length}</span><span className="text-slate-400">Pro Forma</span></Link>
-            <Link href="/quotes?type=invoice" className="rounded-lg py-1.5 transition-colors hover:bg-slate-50"><span className="block text-lg font-semibold text-slate-900">{invoices.length}</span><span className="text-slate-400">Invoices</span></Link>
+            <Link href="/clients" className="rounded-lg py-1.5 transition-colors hover:bg-slate-50"><span className="block text-lg font-semibold text-slate-900">{clientsRes.count ?? 0}</span><span className="text-slate-500">Clients</span></Link>
+            <Link href="/quotes?type=quote" className="rounded-lg py-1.5 transition-colors hover:bg-slate-50"><span className="block text-lg font-semibold text-slate-900">{quotes.length}</span><span className="text-slate-500">Quotes</span></Link>
+            <Link href="/quotes?type=proforma" className="rounded-lg py-1.5 transition-colors hover:bg-slate-50"><span className="block text-lg font-semibold text-slate-900">{proformas.length}</span><span className="text-slate-500">Pro Forma</span></Link>
+            <Link href="/quotes?type=invoice" className="rounded-lg py-1.5 transition-colors hover:bg-slate-50"><span className="block text-lg font-semibold text-slate-900">{invoices.length}</span><span className="text-slate-500">Invoices</span></Link>
           </div>
         </section>
       </div>
@@ -149,7 +149,7 @@ export default async function DashboardPage() {
         <section className={card}>
           <h2 className={h2}>Top clients by value</h2>
           <div className="mt-4 space-y-3">
-            {topClients.length === 0 && <p className="text-sm text-slate-400">No data yet.</p>}
+            {topClients.length === 0 && <p className="text-sm text-slate-500">No data yet.</p>}
             {topClients.map((c) => (
               <div key={c.name}>
                 <div className="mb-1 flex justify-between gap-2 text-xs">
@@ -169,9 +169,9 @@ export default async function DashboardPage() {
             <h2 className={h2}>Recent documents</h2>
             <Link href="/quotes" className="text-sm font-medium text-navy-600 transition-colors hover:text-navy">View all →</Link>
           </div>
-          <div className="overflow-hidden rounded-2xl bg-white shadow-[var(--shadow-card)] ring-1 ring-slate-200/70">
+          <div className="overflow-hidden rounded-2xl bg-white shadow-[var(--shadow-card)] ring-1 ring-slate-200">
             <table className="w-full text-sm">
-              <thead className="border-b border-slate-100 bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              <thead className="border-b border-slate-100 bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Number</th>
                   <th className="px-4 py-3">Type</th>
@@ -191,7 +191,7 @@ export default async function DashboardPage() {
                   </tr>
                 ))}
                 {(!recentRes.data || recentRes.data.length === 0) && (
-                  <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-400">No documents found.</td></tr>
+                  <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-500">No documents found.</td></tr>
                 )}
               </tbody>
             </table>

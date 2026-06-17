@@ -109,9 +109,9 @@ async function DocumentsTable({ sp }: { sp: Record<string, string | string[] | u
 
   return (
     <>
-      <div className="overflow-x-auto rounded-2xl bg-white shadow-[var(--shadow-card)] ring-1 ring-slate-200/70">
+      <div className="overflow-x-auto rounded-2xl bg-white shadow-[var(--shadow-card)] ring-1 ring-slate-200">
         <table className="w-full min-w-[680px] text-sm">
-          <thead className="border-b border-slate-100 bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          <thead className="border-b border-slate-100 bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
             <tr>
               <th className="px-4 py-3">Number</th>
               <th className="px-4 py-3">Type</th>
@@ -135,7 +135,7 @@ async function DocumentsTable({ sp }: { sp: Record<string, string | string[] | u
               </tr>
             ))}
             {(!docs || docs.length === 0) && (
-              <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">No documents match your filters.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-500">No documents match your filters.</td></tr>
             )}
           </tbody>
         </table>

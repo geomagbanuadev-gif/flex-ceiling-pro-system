@@ -32,13 +32,9 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Subtle two-tone wash gives the app depth without noise. */
+/* A slightly deeper, cool neutral so white cards clearly stand out. */
 body {
-  background-color: #eff3f8;
-  background-image:
-    radial-gradient(1100px 560px at 100% -8%, rgb(176 141 87 / 0.07), transparent 60%),
-    radial-gradient(900px 520px at -10% -5%, rgb(12 35 64 / 0.06), transparent 55%);
-  background-attachment: fixed;
+  background-color: #e6ebf2;
 }
 
 /* Brand surfaces */
