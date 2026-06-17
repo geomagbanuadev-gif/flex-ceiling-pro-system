@@ -70,7 +70,7 @@ export function DocumentsFilters({ clients = [], lockedType }: { clients?: { id:
     start(() => router.push(basePath));
   }
 
-  const inp = "rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-navy focus:ring-1 focus:ring-navy";
+  const inp = "rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-[var(--shadow-soft)] outline-none transition focus:border-navy-600 focus:ring-2 focus:ring-navy-600/15";
   const lbl = "mb-1 block text-xs font-medium text-slate-500";
 
   return (
@@ -89,7 +89,7 @@ export function DocumentsFilters({ clients = [], lockedType }: { clients?: { id:
             <option value="invoice">Tax Invoices</option>
           </select>
         )}
-        <button type="button" onClick={() => setOpen((v) => !v)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+        <button type="button" onClick={() => setOpen((v) => !v)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-slate-50">
           Filters
           {activeCount > 0 && <span className="rounded-full bg-navy px-1.5 text-xs font-semibold text-white">{activeCount}</span>}
         </button>
@@ -99,7 +99,7 @@ export function DocumentsFilters({ clients = [], lockedType }: { clients?: { id:
       </div>
 
       {open && (
-        <div className="mt-3 grid gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-3 grid gap-4 rounded-2xl bg-white p-4 shadow-[var(--shadow-card)] ring-1 ring-slate-200/70 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className={lbl}>Client</label>
             <select className={inp + " w-full"} value={client} onChange={(e) => setClient(e.target.value)}>

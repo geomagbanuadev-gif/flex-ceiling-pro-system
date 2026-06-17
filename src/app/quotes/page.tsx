@@ -11,6 +11,7 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { getProfile, canSeeQuotes, canSeeInvoices, canSeeProformas } from "@/utils/profile";
 import { fmtDate } from "@/utils/format";
 import { StatusBadge } from "@/components/StatusBadge";
+import { TypeChip } from "@/components/TypeChip";
 
 const money = (v: number | null) => (v == null ? "—" : "AED " + Number(v).toLocaleString());
 const SORT_COLS = ["doc_date", "number", "grand_total", "client_name"];
@@ -33,27 +34,27 @@ export default async function DocumentsPage(props: PageProps<"/quotes">) {
       active={active}
       title={title}
       action={
-        <div className="flex gap-2">
-          <a href={exportHref} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100" title="Export to CSV">
+        <div className="flex flex-wrap gap-2">
+          <a href={exportHref} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-slate-50" title="Export to CSV">
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" /></svg>
             Export
           </a>
           {canSeeProformas(role) && (typeParam === "" || typeParam === "proforma") && (
             <form action={newProforma}>
-              <SubmitButton pendingLabel="Creating…" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">
+              <SubmitButton pendingLabel="Creating…" className="rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-slate-50">
                 + Pro Forma
               </SubmitButton>
             </form>
           )}
           {canSeeInvoices(role) && (typeParam === "" || typeParam === "invoice") && (
             <form action={newInvoice}>
-              <SubmitButton pendingLabel="Creating…" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">
+              <SubmitButton pendingLabel="Creating…" className="rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-slate-50">
                 + Tax Invoice
               </SubmitButton>
             </form>
           )}
           {canSeeQuotes(role) && (typeParam === "" || typeParam === "quote") && (
-            <Link href="/quotes/new" className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy-700">
+            <Link href="/quotes/new" className="inline-flex items-center rounded-xl bg-navy px-4 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-glow)] transition hover:-translate-y-0.5 hover:bg-navy-700">
               + New Quotation
             </Link>
           )}
@@ -108,9 +109,9 @@ async function DocumentsTable({ sp }: { sp: Record<string, string | string[] | u
 
   return (
     <>
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-2xl bg-white shadow-[var(--shadow-card)] ring-1 ring-slate-200/70">
         <table className="w-full min-w-[680px] text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <thead className="border-b border-slate-100 bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
             <tr>
               <th className="px-4 py-3">Number</th>
               <th className="px-4 py-3">Type</th>
@@ -120,23 +121,21 @@ async function DocumentsTable({ sp }: { sp: Record<string, string | string[] | u
               <th className="px-4 py-3 text-right">Total</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-50">
             {(docs ?? []).map((d) => (
-              <tr key={d.id} className="relative cursor-pointer transition-colors hover:bg-slate-50">
-                <td className="px-4 py-2.5">
-                  <Link href={`/quotes/${d.id}`} className="font-medium text-navy hover:underline before:absolute before:inset-0">{d.number}</Link>
+              <tr key={d.id} className="relative cursor-pointer transition-colors hover:bg-slate-50/70">
+                <td className="px-4 py-3">
+                  <Link href={`/quotes/${d.id}`} className="font-semibold text-navy before:absolute before:inset-0 hover:text-navy-600">{d.number}</Link>
                 </td>
-                <td className="px-4 py-2.5">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${d.type === "invoice" ? "bg-gold/10 text-gold" : d.type === "proforma" ? "bg-emerald-100 text-emerald-700" : "bg-navy/10 text-navy"}`}>{d.type === "proforma" ? "pro forma" : d.type}</span>
-                </td>
-                <td className="px-4 py-2.5"><StatusBadge status={d.status} /></td>
-                <td className="px-4 py-2.5 text-slate-600">{fmtDate(d.doc_date)}</td>
-                <td className="px-4 py-2.5 text-slate-700">{d.client_name || "—"}</td>
-                <td className="px-4 py-2.5 text-right font-medium text-slate-900">{money(d.grand_total)}</td>
+                <td className="px-4 py-3"><TypeChip type={d.type} /></td>
+                <td className="px-4 py-3"><StatusBadge status={d.status} /></td>
+                <td className="px-4 py-3 text-slate-500">{fmtDate(d.doc_date)}</td>
+                <td className="px-4 py-3 text-slate-700">{d.client_name || "—"}</td>
+                <td className="px-4 py-3 text-right font-semibold tabular-nums text-slate-900">{money(d.grand_total)}</td>
               </tr>
             ))}
             {(!docs || docs.length === 0) && (
-              <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-400">No documents match your filters.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">No documents match your filters.</td></tr>
             )}
           </tbody>
         </table>

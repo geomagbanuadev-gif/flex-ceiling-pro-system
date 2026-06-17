@@ -11,7 +11,7 @@ export function MobileNav({ nav, active, email, role }: { nav: NavItem[]; active
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -22,8 +22,8 @@ export function MobileNav({ nav, active, email, role }: { nav: NavItem[]; active
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50" onClick={() => setOpen(false)}>
-          <div className="absolute right-0 top-0 flex h-full w-64 max-w-[82%] flex-col bg-navy p-5 text-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm" onClick={() => setOpen(false)}>
+          <div className="bg-brand absolute right-0 top-0 flex h-full w-64 max-w-[82%] flex-col p-5 text-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold tracking-tight">FlexCeiling Pro</span>
               <button type="button" onClick={() => setOpen(false)} aria-label="Close menu" className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/10">

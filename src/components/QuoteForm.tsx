@@ -166,13 +166,13 @@ export function QuoteForm({
     });
   }
 
-  const inp = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-colors focus:border-navy focus:ring-1 focus:ring-navy";
-  const lbl = "text-xs font-medium text-slate-600";
+  const inp = "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-[var(--shadow-soft)] outline-none transition focus:border-navy-600 focus:ring-2 focus:ring-navy-600/15";
+  const lbl = "text-xs font-medium text-slate-500";
 
   return (
     <div className="space-y-6">
       {/* Client */}
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <section className="rounded-2xl bg-white p-6 shadow-[var(--shadow-card)] ring-1 ring-slate-200/70">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Client</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -212,7 +212,7 @@ export function QuoteForm({
       </section>
 
       {/* Quote details */}
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <section className="rounded-2xl bg-white p-6 shadow-[var(--shadow-card)] ring-1 ring-slate-200/70">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{docWord} details</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
@@ -231,13 +231,13 @@ export function QuoteForm({
       </section>
 
       {/* Line items */}
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <section className="rounded-2xl bg-white p-6 shadow-[var(--shadow-card)] ring-1 ring-slate-200/70">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Line items</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Line items</h2>
             <p className="mt-0.5 text-xs text-slate-400">Tip: start a description line with <span className="font-mono text-red-500">*</span> to print that line in red.</p>
           </div>
-          <button type="button" onClick={() => setItems((p) => [...p, emptyItem()])} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">+ Add row</button>
+          <button type="button" onClick={() => setItems((p) => [...p, emptyItem()])} className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-slate-50">+ Add row</button>
         </div>
         <div className="mt-4 space-y-3">
           {items.map((it, i) => (
@@ -254,24 +254,24 @@ export function QuoteForm({
           ))}
         </div>
         <div className="mt-5 flex justify-end">
-          <div className="w-full max-w-xs space-y-1.5 text-sm">
-            <div className="flex justify-between"><span className="text-slate-500">Sub Total</span><span className="font-medium">AED {totals.subtotal.toLocaleString()}</span></div>
-            <div className="flex items-center justify-between"><span className="text-slate-500">Discount</span><span className="flex items-center gap-1">AED <input className="w-24 rounded border border-slate-300 px-2 py-0.5 text-right" inputMode="decimal" placeholder="0" value={discount} onChange={(e) => setDiscount(e.target.value)} /></span></div>
-            <div className="flex items-center justify-between"><span className="text-slate-500">VAT <input className="mx-1 w-12 rounded border border-slate-300 px-1 text-center" value={vatRate} onChange={(e) => setVatRate(Number(e.target.value))} />%</span><span className="font-medium">AED {totals.vatAmount.toLocaleString()}</span></div>
-            <div className="flex justify-between border-t border-slate-200 pt-1.5 text-base font-semibold"><span>Grand Total</span><span>AED {totals.grandTotal.toLocaleString()}</span></div>
+          <div className="w-full max-w-sm space-y-2 rounded-xl bg-slate-50/80 p-4 text-sm ring-1 ring-slate-100">
+            <div className="flex justify-between"><span className="text-slate-500">Sub Total</span><span className="font-medium tabular-nums">AED {totals.subtotal.toLocaleString()}</span></div>
+            <div className="flex items-center justify-between"><span className="text-slate-500">Discount</span><span className="flex items-center gap-1">AED <input className="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1 text-right tabular-nums" inputMode="decimal" placeholder="0" value={discount} onChange={(e) => setDiscount(e.target.value)} /></span></div>
+            <div className="flex items-center justify-between"><span className="flex items-center text-slate-500">VAT <input className="mx-1.5 w-12 rounded-lg border border-slate-200 bg-white px-1 py-1 text-center" value={vatRate} onChange={(e) => setVatRate(Number(e.target.value))} />%</span><span className="font-medium tabular-nums">AED {totals.vatAmount.toLocaleString()}</span></div>
+            <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-semibold"><span>Grand Total</span><span className="tabular-nums">AED {totals.grandTotal.toLocaleString()}</span></div>
             {isProforma && (
-              <div className="mt-2 space-y-1.5 border-t border-slate-200 pt-2">
+              <div className="mt-1 space-y-2 border-t border-dashed border-slate-300 pt-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500">Advance Payment{advancePct ? <span className="ml-1 text-xs text-slate-400">({advancePct}%)</span> : null}</span>
-                  <span className="flex items-center gap-1">AED <input className="w-24 rounded border border-slate-300 px-2 py-0.5 text-right" inputMode="decimal" placeholder="0" value={advance} onChange={(e) => setAdvance(e.target.value)} /></span>
+                  <span className="flex items-center gap-1">AED <input className="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1 text-right tabular-nums" inputMode="decimal" placeholder="0" value={advance} onChange={(e) => setAdvance(e.target.value)} /></span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs text-slate-400">Quick:</span>
                   {[50, 40, 10, 100].map((pct) => (
-                    <button key={pct} type="button" onClick={() => setAdvancePct(pct)} className="rounded border border-slate-300 px-1.5 py-0.5 text-xs text-slate-600 hover:bg-slate-100">{pct}%</button>
+                    <button key={pct} type="button" onClick={() => setAdvancePct(pct)} className="rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-600 transition hover:border-navy-600 hover:text-navy">{pct}%</button>
                   ))}
                 </div>
-                <div className="flex justify-between font-semibold text-red-600"><span>Balance Due</span><span>AED {balanceDue.toLocaleString()}</span></div>
+                <div className="flex justify-between font-semibold text-red-600"><span>Balance Due</span><span className="tabular-nums">AED {balanceDue.toLocaleString()}</span></div>
               </div>
             )}
           </div>
@@ -279,8 +279,8 @@ export function QuoteForm({
       </section>
 
       {/* Terms */}
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Terms &amp; notes</h2>
+      <section className="rounded-2xl bg-white p-6 shadow-[var(--shadow-card)] ring-1 ring-slate-200/70">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Terms &amp; notes</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
             <label className={lbl}>Payment terms</label>
@@ -295,11 +295,20 @@ export function QuoteForm({
         </div>
       </section>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <div className="flex justify-end gap-3">
-        <button type="button" disabled={pending} onClick={submit} className="rounded-lg bg-navy px-6 py-2.5 text-sm font-medium text-white hover:bg-navy-700 disabled:opacity-60">
-          {pending ? "Saving…" : initial ? "Save changes" : `Save ${docWord.toLowerCase()}`}
-        </button>
+      {/* Sticky live summary + save */}
+      <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white/85 px-5 py-3.5 shadow-[var(--shadow-pop)] backdrop-blur-md">
+        <div className="flex items-baseline gap-2.5">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{docWord} total</span>
+          <span className="text-lg font-semibold tabular-nums text-slate-900">AED {totals.grandTotal.toLocaleString()}</span>
+          {isProforma && <span className="text-xs font-medium text-red-600">· Balance AED {balanceDue.toLocaleString()}</span>}
+        </div>
+        <div className="flex items-center gap-3">
+          {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+          <button type="button" disabled={pending} onClick={submit} className="inline-flex items-center gap-2 rounded-xl bg-navy px-6 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-glow)] transition hover:bg-navy-700 disabled:opacity-60">
+            {pending && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />}
+            {pending ? "Saving…" : initial ? "Save changes" : `Save ${docWord.toLowerCase()}`}
+          </button>
+        </div>
       </div>
     </div>
   );
