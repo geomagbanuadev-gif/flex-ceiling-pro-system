@@ -4,15 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { QuoteForm } from "@/components/QuoteForm";
 import { AppShell } from "@/components/AppShell";
 import { getProfile, canSeeQuotes } from "@/utils/profile";
-
-function nextQuoteNumber(numbers: string[], prefix: string) {
-  let max = 0;
-  for (const num of numbers) {
-    const m = String(num).match(/(\d+)\s*$/);
-    if (m) max = Math.max(max, parseInt(m[1], 10));
-  }
-  return prefix + String(max + 1).padStart(4, "0");
-}
+import { nextDocNumber } from "@/utils/docNumber";
 
 export default async function NewQuotePage(props: PageProps<"/quotes/new">) {
   const me = await getProfile();
@@ -30,7 +22,7 @@ export default async function NewQuotePage(props: PageProps<"/quotes/new">) {
 
   const settings = settingsRes.data;
   const prefix = settings?.quote_prefix ?? "1000-";
-  const nextNumber = nextQuoteNumber((numbersRes.data ?? []).map((d) => d.number), prefix);
+  const nextNumber = nextDocNumber((numbersRes.data ?? []).map((d) => d.number), prefix);
   const presetClient = presetId ? (clientsRes.data ?? []).find((c) => c.id === presetId) : undefined;
 
   return (

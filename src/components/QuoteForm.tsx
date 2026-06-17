@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { saveQuote, type QuotePayload } from "@/app/quotes/actions";
+import { computeTotals } from "@/utils/totals";
 
 type Client = {
   id: string;
@@ -80,17 +81,14 @@ export function QuoteForm({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
 
-  const totals = useMemo(() => {
-    const subtotal = items.reduce((s, it) => s + numOr0(it.amount), 0);
-    const disc = Math.min(numOr0(discount), subtotal);
-    const taxable = subtotal - disc;
-    const vatAmount = +(taxable * (vatRate / 100)).toFixed(2);
-    return { subtotal: +subtotal.toFixed(2), discount: +disc.toFixed(2), vatAmount, grandTotal: +(taxable + vatAmount).toFixed(2) };
-  }, [items, vatRate, discount]);
+  const totals = useMemo(
+    () => computeTotals(items.map((it) => numOr0(it.amount)), { vatRate, discount: numOr0(discount), advance: numOr0(advance) }),
+    [items, vatRate, discount, advance]
+  );
 
   // Pro forma: advance (what the client pays now) + the remaining balance.
-  const advanceAmount = Math.min(numOr0(advance), totals.grandTotal);
-  const balanceDue = +(totals.grandTotal - advanceAmount).toFixed(2);
+  const advanceAmount = totals.advanceAmount;
+  const balanceDue = totals.balanceDue;
   const advancePct = totals.grandTotal ? Math.round((advanceAmount / totals.grandTotal) * 100) : 0;
   const setAdvancePct = (pct: number) => setAdvance(String(+(totals.grandTotal * (pct / 100)).toFixed(2)));
 

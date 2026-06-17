@@ -1,6 +1,9 @@
 import { createClient } from "@/utils/supabase/server";
+import type { Role } from "@/utils/roles";
 
-export type Role = "super" | "staff" | "quotes" | "invoices";
+export type { Role } from "@/utils/roles";
+export { canSeeQuotes, canSeeInvoices, canSeeProformas, canAccessType } from "@/utils/roles";
+
 export type Profile = {
   id: string;
   email: string | null;
@@ -28,8 +31,3 @@ export async function getProfile(): Promise<Profile | null> {
   }
   return (data as Profile) ?? null;
 }
-
-export const canSeeQuotes = (r: Role) => r === "super" || r === "staff" || r === "quotes";
-export const canSeeInvoices = (r: Role) => r === "super" || r === "staff" || r === "invoices";
-// Pro formas are billing documents — same access group as tax invoices.
-export const canSeeProformas = (r: Role) => r === "super" || r === "staff" || r === "invoices";

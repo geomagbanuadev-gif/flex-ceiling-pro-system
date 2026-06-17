@@ -4,18 +4,9 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { amountInWords } from "@/utils/amountInWords";
+import { nextDocNumber } from "@/utils/docNumber";
+import { statusesFor, prefixFor, wordsForType, advanceForType, defaultAdvance, type DocType } from "@/utils/docRules";
 import { getProfile, canSeeInvoices } from "@/utils/profile";
-
-const QUOTE_STATUSES = ["draft", "sent", "won", "lost"];
-const INVOICE_STATUSES = ["draft", "sent", "paid", "lost"];
-// Pro formas are billing documents, so they share the invoice lifecycle.
-const statusesFor = (type: string) => (type === "quote" ? QUOTE_STATUSES : INVOICE_STATUSES);
-
-type DocType = "quote" | "invoice" | "proforma";
-const numberPrefix = (type: DocType, s: Record<string, unknown> | null | undefined) =>
-  (type === "invoice" ? (s?.invoice_prefix as string) ?? "INV-"
-    : type === "proforma" ? (s?.proforma_prefix as string) ?? "PF-"
-      : (s?.quote_prefix as string) ?? "1000-");
 
 /** Next sequential document number for a type, e.g. "PF-0007". */
 async function nextNumber(
@@ -24,12 +15,7 @@ async function nextNumber(
   prefix: string
 ) {
   const { data: nums } = await supabase.from("documents").select("number").eq("type", type);
-  let max = 0;
-  for (const n of nums ?? []) {
-    const m = String(n.number).match(/(\d+)\s*$/);
-    if (m) max = Math.max(max, parseInt(m[1], 10));
-  }
-  return prefix + String(max + 1).padStart(4, "0");
+  return nextDocNumber((nums ?? []).map((n) => n.number), prefix);
 }
 
 // Supplier (company) details are snapshotted onto each document at creation,
@@ -153,8 +139,8 @@ export async function saveQuote(p: QuotePayload) {
     vat_rate: p.vatRate,
     vat_amount: p.vatAmount,
     grand_total: p.grandTotal,
-    advance_amount: type === "proforma" ? p.advanceAmount || 0 : 0,
-    amount_in_words: type === "quote" ? null : amountInWords(p.grandTotal),
+    advance_amount: advanceForType(type, p.advanceAmount),
+    amount_in_words: wordsForType(type, p.grandTotal),
     notes: p.notes || null,
     updated_by: user.id,
     updated_at: new Date().toISOString(),
@@ -218,14 +204,7 @@ export async function convertToInvoice(quoteId: string) {
 
   // next invoice number from the invoice prefix sequence
   const { data: settings } = await supabase.from("company_settings").select(`invoice_prefix, ${SUPPLIER_COLS}`).eq("id", 1).maybeSingle();
-  const prefix = settings?.invoice_prefix ?? "INV-";
-  const { data: nums } = await supabase.from("documents").select("number").eq("type", "invoice");
-  let max = 0;
-  for (const n of nums ?? []) {
-    const m = String(n.number).match(/(\d+)\s*$/);
-    if (m) max = Math.max(max, parseInt(m[1], 10));
-  }
-  const number = prefix + String(max + 1).padStart(4, "0");
+  const number = await nextNumber(supabase, "invoice", settings?.invoice_prefix ?? "INV-");
 
   const { data: inv, error } = await insertDoc(supabase, {
     type: "invoice",
@@ -346,7 +325,7 @@ export async function duplicateDocument(docId: string) {
 
   const type: DocType = src.type === "invoice" ? "invoice" : src.type === "proforma" ? "proforma" : "quote";
   const { data: settings } = await supabase.from("company_settings").select(`quote_prefix, invoice_prefix, proforma_prefix, ${SUPPLIER_COLS}`).eq("id", 1).maybeSingle();
-  const number = await nextNumber(supabase, type, numberPrefix(type, settings));
+  const number = await nextNumber(supabase, type, prefixFor(type, settings));
 
   const { data: copy, error } = await insertDoc(supabase, {
     type,
@@ -368,8 +347,8 @@ export async function duplicateDocument(docId: string) {
     vat_rate: src.vat_rate,
     vat_amount: src.vat_amount,
     grand_total: src.grand_total,
-    advance_amount: type === "proforma" ? src.advance_amount ?? 0 : 0,
-    amount_in_words: type === "quote" ? null : amountInWords(src.grand_total),
+    advance_amount: advanceForType(type, src.advance_amount),
+    amount_in_words: wordsForType(type, src.grand_total),
     notes: src.notes,
     supplier_snapshot: snapshotOf(settings),
     created_by: user.id,
@@ -406,14 +385,7 @@ export async function newInvoice() {
   if (me && !canSeeInvoices(me.role)) throw new Error("Not authorized to create invoices");
 
   const { data: settings } = await supabase.from("company_settings").select(`invoice_prefix, ${SUPPLIER_COLS}`).eq("id", 1).maybeSingle();
-  const prefix = settings?.invoice_prefix ?? "INV-";
-  const { data: nums } = await supabase.from("documents").select("number").eq("type", "invoice");
-  let max = 0;
-  for (const n of nums ?? []) {
-    const m = String(n.number).match(/(\d+)\s*$/);
-    if (m) max = Math.max(max, parseInt(m[1], 10));
-  }
-  const number = prefix + String(max + 1).padStart(4, "0");
+  const number = await nextNumber(supabase, "invoice", settings?.invoice_prefix ?? "INV-");
 
   const { data: inv, error } = await insertDoc(supabase, { type: "invoice", number, doc_date: new Date().toISOString().slice(0, 10), status: "draft", vat_rate: 5, supplier_snapshot: snapshotOf(settings), created_by: user.id });
   if (error) throw new Error(error.message);
@@ -432,7 +404,7 @@ export async function newProforma() {
   if (me && !canSeeInvoices(me.role)) throw new Error("Not authorized to create pro formas");
 
   const { data: settings } = await supabase.from("company_settings").select(`proforma_prefix, ${SUPPLIER_COLS}`).eq("id", 1).maybeSingle();
-  const number = await nextNumber(supabase, "proforma", numberPrefix("proforma", settings));
+  const number = await nextNumber(supabase, "proforma", prefixFor("proforma", settings));
 
   const { data: pf, error } = await insertDoc(supabase, { type: "proforma", number, doc_date: new Date().toISOString().slice(0, 10), status: "draft", vat_rate: 5, supplier_snapshot: snapshotOf(settings), created_by: user.id });
   if (error) throw new Error(error.message);
@@ -456,8 +428,8 @@ export async function convertToProforma(sourceId: string) {
   const { data: items } = await supabase.from("document_items").select("*").eq("document_id", sourceId).order("sort_order");
 
   const { data: settings } = await supabase.from("company_settings").select(`proforma_prefix, ${SUPPLIER_COLS}`).eq("id", 1).maybeSingle();
-  const number = await nextNumber(supabase, "proforma", numberPrefix("proforma", settings));
-  const advance = +(((src.grand_total ?? 0) as number) * 0.5).toFixed(2);
+  const number = await nextNumber(supabase, "proforma", prefixFor("proforma", settings));
+  const advance = defaultAdvance(src.grand_total);
 
   const { data: pf, error } = await insertDoc(supabase, {
     type: "proforma",
