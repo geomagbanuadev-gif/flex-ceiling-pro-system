@@ -169,8 +169,8 @@ export default async function DashboardPage() {
             <h2 className={h2}>Recent documents</h2>
             <Link href="/quotes" className="text-sm font-medium text-navy-600 transition-colors hover:text-navy">View all →</Link>
           </div>
-          <div className="overflow-hidden rounded-2xl bg-white shadow-[var(--shadow-card)] ring-1 ring-slate-200">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-2xl bg-white shadow-[var(--shadow-card)] ring-1 ring-slate-200">
+            <table className="w-full min-w-[520px] text-sm">
               <thead className="border-b border-slate-100 bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Number</th>

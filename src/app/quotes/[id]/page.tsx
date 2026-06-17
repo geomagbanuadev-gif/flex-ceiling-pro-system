@@ -85,8 +85,8 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
             )}
           </div>
 
-          <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200 shadow-[var(--shadow-card)]">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-slate-200 shadow-[var(--shadow-card)]">
+            <table className="w-full min-w-[440px] text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="px-3 py-2.5">Description</th>
