@@ -37,7 +37,7 @@ export default async function NewQuotePage(props: PageProps<"/quotes/new">) {
     <AppShell
       active="quotes"
       title="New Quotation"
-      action={<Link href="/quotes" className="text-sm font-medium text-navy-600 hover:underline">← All documents</Link>}
+      action={<Link href="/quotes?type=quote" className="text-sm font-medium text-navy-600 hover:underline">← All quotations</Link>}
     >
       <QuoteForm
         clients={clientsRes.data ?? []}

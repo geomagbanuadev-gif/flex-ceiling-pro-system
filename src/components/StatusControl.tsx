@@ -9,6 +9,7 @@ import { useToast } from "./Toast";
 const STATUSES: Record<string, string[]> = {
   quote: ["draft", "sent", "won", "lost"],
   invoice: ["draft", "sent", "paid", "lost"],
+  proforma: ["draft", "sent", "paid", "lost"],
 };
 const COLORS: Record<string, string> = {
   draft: "bg-slate-100 text-slate-600",
@@ -19,7 +20,7 @@ const COLORS: Record<string, string> = {
   imported: "bg-amber-100 text-amber-700",
 };
 
-export function StatusControl({ docId, type, current }: { docId: string; type: "quote" | "invoice"; current: string | null }) {
+export function StatusControl({ docId, type, current }: { docId: string; type: "quote" | "invoice" | "proforma"; current: string | null }) {
   const [pending, start] = useTransition();
   const router = useRouter();
   const toast = useToast();

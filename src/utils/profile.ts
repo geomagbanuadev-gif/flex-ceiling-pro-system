@@ -31,3 +31,5 @@ export async function getProfile(): Promise<Profile | null> {
 
 export const canSeeQuotes = (r: Role) => r === "super" || r === "staff" || r === "quotes";
 export const canSeeInvoices = (r: Role) => r === "super" || r === "staff" || r === "invoices";
+// Pro formas are billing documents — same access group as tax invoices.
+export const canSeeProformas = (r: Role) => r === "super" || r === "staff" || r === "invoices";

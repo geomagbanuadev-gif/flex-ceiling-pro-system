@@ -8,6 +8,7 @@ const MESSAGES: Record<string, string> = {
   saved: "Saved",
   deleted: "Document deleted",
   converted: "Tax invoice created",
+  proforma: "Pro forma created — set the advance",
   duplicated: "Duplicated — ready to edit",
   "client-saved": "Client saved",
 };

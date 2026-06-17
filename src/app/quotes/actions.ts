@@ -8,6 +8,29 @@ import { getProfile, canSeeInvoices } from "@/utils/profile";
 
 const QUOTE_STATUSES = ["draft", "sent", "won", "lost"];
 const INVOICE_STATUSES = ["draft", "sent", "paid", "lost"];
+// Pro formas are billing documents, so they share the invoice lifecycle.
+const statusesFor = (type: string) => (type === "quote" ? QUOTE_STATUSES : INVOICE_STATUSES);
+
+type DocType = "quote" | "invoice" | "proforma";
+const numberPrefix = (type: DocType, s: Record<string, unknown> | null | undefined) =>
+  (type === "invoice" ? (s?.invoice_prefix as string) ?? "INV-"
+    : type === "proforma" ? (s?.proforma_prefix as string) ?? "PF-"
+      : (s?.quote_prefix as string) ?? "1000-");
+
+/** Next sequential document number for a type, e.g. "PF-0007". */
+async function nextNumber(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  type: DocType,
+  prefix: string
+) {
+  const { data: nums } = await supabase.from("documents").select("number").eq("type", type);
+  let max = 0;
+  for (const n of nums ?? []) {
+    const m = String(n.number).match(/(\d+)\s*$/);
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  }
+  return prefix + String(max + 1).padStart(4, "0");
+}
 
 // Supplier (company) details are snapshotted onto each document at creation,
 // so editing company Settings never changes already-issued quotes/invoices.
@@ -31,10 +54,13 @@ async function insertDoc(
   row: Record<string, unknown>
 ) {
   let res = await supabase.from("documents").insert(row).select("id").single();
-  if (res.error && /supplier_snapshot/i.test(res.error.message || "")) {
-    const rest = { ...row };
-    delete rest.supplier_snapshot;
-    res = await supabase.from("documents").insert(rest).select("id").single();
+  // Gracefully drop columns whose migration hasn't been applied yet.
+  for (const col of ["supplier_snapshot", "advance_amount"]) {
+    if (res.error && new RegExp(col, "i").test(res.error.message || "")) {
+      const rest = { ...row };
+      delete rest[col];
+      res = await supabase.from("documents").insert(rest).select("id").single();
+    }
   }
   return res;
 }
@@ -49,7 +75,7 @@ export type QuoteItemInput = {
 
 export type QuotePayload = {
   id?: string;
-  type?: "quote" | "invoice";
+  type?: DocType;
   clientId: string | null;
   clientName: string;
   clientTrn: string;
@@ -68,6 +94,7 @@ export type QuotePayload = {
   subtotal: number;
   vatAmount: number;
   grandTotal: number;
+  advanceAmount: number;
   items: QuoteItemInput[];
 };
 
@@ -126,7 +153,8 @@ export async function saveQuote(p: QuotePayload) {
     vat_rate: p.vatRate,
     vat_amount: p.vatAmount,
     grand_total: p.grandTotal,
-    amount_in_words: type === "invoice" ? amountInWords(p.grandTotal) : null,
+    advance_amount: type === "proforma" ? p.advanceAmount || 0 : 0,
+    amount_in_words: type === "quote" ? null : amountInWords(p.grandTotal),
     notes: p.notes || null,
     updated_by: user.id,
     updated_at: new Date().toISOString(),
@@ -240,8 +268,10 @@ export async function convertToInvoice(quoteId: string) {
     );
   }
 
-  // mark the quote as won/converted
-  await supabase.from("documents").update({ status: "won" }).eq("id", quoteId);
+  // mark the source quote as won/converted (pro forma sources keep their own status)
+  if (quote.type === "quote") {
+    await supabase.from("documents").update({ status: "won" }).eq("id", quoteId);
+  }
 
   redirect(`/quotes/${inv.id}?flash=converted`);
 }
@@ -291,8 +321,7 @@ export async function updateStatus(docId: string, status: string) {
 
   const { data: doc } = await supabase.from("documents").select("type").eq("id", docId).maybeSingle();
   if (!doc) throw new Error("Document not found");
-  const allowed = doc.type === "invoice" ? INVOICE_STATUSES : QUOTE_STATUSES;
-  if (!allowed.includes(status)) throw new Error("Invalid status");
+  if (!statusesFor(doc.type).includes(status)) throw new Error("Invalid status");
 
   const { error } = await supabase
     .from("documents")
@@ -315,16 +344,9 @@ export async function duplicateDocument(docId: string) {
   if (sErr || !src) throw new Error("Document not found");
   const { data: items } = await supabase.from("document_items").select("*").eq("document_id", docId).order("sort_order");
 
-  const type = src.type === "invoice" ? "invoice" : "quote";
-  const { data: settings } = await supabase.from("company_settings").select(`quote_prefix, invoice_prefix, ${SUPPLIER_COLS}`).eq("id", 1).maybeSingle();
-  const prefix = type === "invoice" ? settings?.invoice_prefix ?? "INV-" : settings?.quote_prefix ?? "1000-";
-  const { data: nums } = await supabase.from("documents").select("number").eq("type", type);
-  let max = 0;
-  for (const n of nums ?? []) {
-    const m = String(n.number).match(/(\d+)\s*$/);
-    if (m) max = Math.max(max, parseInt(m[1], 10));
-  }
-  const number = prefix + String(max + 1).padStart(4, "0");
+  const type: DocType = src.type === "invoice" ? "invoice" : src.type === "proforma" ? "proforma" : "quote";
+  const { data: settings } = await supabase.from("company_settings").select(`quote_prefix, invoice_prefix, proforma_prefix, ${SUPPLIER_COLS}`).eq("id", 1).maybeSingle();
+  const number = await nextNumber(supabase, type, numberPrefix(type, settings));
 
   const { data: copy, error } = await insertDoc(supabase, {
     type,
@@ -346,7 +368,8 @@ export async function duplicateDocument(docId: string) {
     vat_rate: src.vat_rate,
     vat_amount: src.vat_amount,
     grand_total: src.grand_total,
-    amount_in_words: type === "invoice" ? amountInWords(src.grand_total) : null,
+    advance_amount: type === "proforma" ? src.advance_amount ?? 0 : 0,
+    amount_in_words: type === "quote" ? null : amountInWords(src.grand_total),
     notes: src.notes,
     supplier_snapshot: snapshotOf(settings),
     created_by: user.id,
@@ -397,6 +420,91 @@ export async function newInvoice() {
   redirect(`/quotes/${inv.id}/edit`);
 }
 
+/** Create a fresh blank Pro Forma and open it for editing. */
+export async function newProforma() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const me = await getProfile();
+  if (me && !canSeeInvoices(me.role)) throw new Error("Not authorized to create pro formas");
+
+  const { data: settings } = await supabase.from("company_settings").select(`proforma_prefix, ${SUPPLIER_COLS}`).eq("id", 1).maybeSingle();
+  const number = await nextNumber(supabase, "proforma", numberPrefix("proforma", settings));
+
+  const { data: pf, error } = await insertDoc(supabase, { type: "proforma", number, doc_date: new Date().toISOString().slice(0, 10), status: "draft", vat_rate: 5, supplier_snapshot: snapshotOf(settings), created_by: user.id });
+  if (error) throw new Error(error.message);
+  redirect(`/quotes/${pf.id}/edit`);
+}
+
+/** Generate a Pro Forma from an existing quote/invoice (copies client + items;
+ *  defaults the advance to 50% of the grand total — editable afterwards). */
+export async function convertToProforma(sourceId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const me = await getProfile();
+  if (me && !canSeeInvoices(me.role)) throw new Error("Not authorized to create pro formas");
+
+  const { data: src, error: sErr } = await supabase.from("documents").select("*").eq("id", sourceId).single();
+  if (sErr || !src) throw new Error("Document not found");
+  const { data: items } = await supabase.from("document_items").select("*").eq("document_id", sourceId).order("sort_order");
+
+  const { data: settings } = await supabase.from("company_settings").select(`proforma_prefix, ${SUPPLIER_COLS}`).eq("id", 1).maybeSingle();
+  const number = await nextNumber(supabase, "proforma", numberPrefix("proforma", settings));
+  const advance = +(((src.grand_total ?? 0) as number) * 0.5).toFixed(2);
+
+  const { data: pf, error } = await insertDoc(supabase, {
+    type: "proforma",
+    number,
+    doc_date: new Date().toISOString().slice(0, 10),
+    client_id: src.client_id,
+    client_name: src.client_name,
+    client_trn: src.client_trn,
+    client_address: src.client_address,
+    client_email: src.client_email,
+    contact_person: src.contact_person,
+    contact_phone: src.contact_phone,
+    reference: src.reference,
+    status: "draft",
+    payment_terms: src.payment_terms,
+    subtotal: src.subtotal,
+    discount: src.discount,
+    vat_rate: src.vat_rate,
+    vat_amount: src.vat_amount,
+    grand_total: src.grand_total,
+    advance_amount: advance,
+    amount_in_words: amountInWords(src.grand_total),
+    notes: src.notes,
+    converted_from: sourceId,
+    supplier_snapshot: snapshotOf(settings),
+    created_by: user.id,
+  });
+  if (error) throw new Error(error.message);
+
+  if (items?.length) {
+    await supabase.from("document_items").insert(
+      items.map((it, i) => ({
+        document_id: pf.id,
+        sr_no: it.sr_no ?? i + 1,
+        description: it.description,
+        area: it.area,
+        unit: it.unit,
+        rate: it.rate,
+        amount: it.amount,
+        sort_order: it.sort_order ?? i,
+      }))
+    );
+  }
+
+  redirect(`/quotes/${pf.id}/edit?flash=proforma`);
+}
+
 /** Permanently delete a document and its line items. */
 export async function deleteDocument(docId: string) {
   const supabase = await createClient();
@@ -405,9 +513,13 @@ export async function deleteDocument(docId: string) {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
+  // remember the type so we can return to the right tab after deleting
+  const { data: doc } = await supabase.from("documents").select("type").eq("id", docId).maybeSingle();
+  const type = doc?.type ?? "quote";
+
   await supabase.from("document_items").delete().eq("document_id", docId);
   const { error } = await supabase.from("documents").delete().eq("id", docId);
   if (error) throw new Error(error.message);
   revalidatePath("/quotes");
-  redirect("/quotes?flash=deleted");
+  redirect(`/quotes?type=${type}&flash=deleted`);
 }

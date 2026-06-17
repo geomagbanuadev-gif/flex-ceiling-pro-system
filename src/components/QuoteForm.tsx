@@ -23,7 +23,7 @@ const numOr0 = (v: string) => {
 
 export type QuoteInitial = {
   id: string;
-  type: "quote" | "invoice";
+  type: "quote" | "invoice" | "proforma";
   clientId: string | null;
   clientName: string;
   clientTrn: string;
@@ -38,6 +38,7 @@ export type QuoteInitial = {
   validityDays: number;
   vatRate: number;
   discount: number;
+  advanceAmount: number;
   notes: string;
   items: Item[];
 };
@@ -56,7 +57,8 @@ export function QuoteForm({
   presetClient?: Client;
 }) {
   const isInvoice = initial?.type === "invoice";
-  const docWord = isInvoice ? "Tax Invoice" : "Quotation";
+  const isProforma = initial?.type === "proforma";
+  const docWord = isProforma ? "Pro Forma" : isInvoice ? "Tax Invoice" : "Quotation";
 
   const [clientId, setClientId] = useState<string | null>(initial?.clientId ?? presetClient?.id ?? null);
   const [clientName, setClientName] = useState(initial?.clientName ?? presetClient?.name ?? "");
@@ -72,6 +74,7 @@ export function QuoteForm({
   const [validityDays, setValidityDays] = useState(initial?.validityDays ?? defaults.validityDays);
   const [vatRate, setVatRate] = useState(initial?.vatRate ?? defaults.vatRate);
   const [discount, setDiscount] = useState(String(initial?.discount ?? ""));
+  const [advance, setAdvance] = useState(String(initial?.advanceAmount ?? ""));
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [items, setItems] = useState<Item[]>(initial?.items?.length ? initial.items : [emptyItem()]);
   const [pending, startTransition] = useTransition();
@@ -84,6 +87,12 @@ export function QuoteForm({
     const vatAmount = +(taxable * (vatRate / 100)).toFixed(2);
     return { subtotal: +subtotal.toFixed(2), discount: +disc.toFixed(2), vatAmount, grandTotal: +(taxable + vatAmount).toFixed(2) };
   }, [items, vatRate, discount]);
+
+  // Pro forma: advance (what the client pays now) + the remaining balance.
+  const advanceAmount = Math.min(numOr0(advance), totals.grandTotal);
+  const balanceDue = +(totals.grandTotal - advanceAmount).toFixed(2);
+  const advancePct = totals.grandTotal ? Math.round((advanceAmount / totals.grandTotal) * 100) : 0;
+  const setAdvancePct = (pct: number) => setAdvance(String(+(totals.grandTotal * (pct / 100)).toFixed(2)));
 
   function pickClient(id: string) {
     const c = clients.find((x) => x.id === id);
@@ -141,6 +150,7 @@ export function QuoteForm({
       subtotal: totals.subtotal,
       vatAmount: totals.vatAmount,
       grandTotal: totals.grandTotal,
+      advanceAmount,
       items: items.map((it) => ({
         description: it.description,
         area: it.area === "" ? null : numOr0(it.area),
@@ -208,7 +218,7 @@ export function QuoteForm({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{docWord} details</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
-            <label className={lbl}>{isInvoice ? "Invoice No." : "Quote No."}</label>
+            <label className={lbl}>{isInvoice ? "Invoice No." : isProforma ? "Proforma No." : "Quote No."}</label>
             <input className={inp + " mt-1.5"} value={number} onChange={(e) => setNumber(e.target.value)} />
           </div>
           <div>
@@ -251,6 +261,21 @@ export function QuoteForm({
             <div className="flex items-center justify-between"><span className="text-slate-500">Discount</span><span className="flex items-center gap-1">AED <input className="w-24 rounded border border-slate-300 px-2 py-0.5 text-right" inputMode="decimal" placeholder="0" value={discount} onChange={(e) => setDiscount(e.target.value)} /></span></div>
             <div className="flex items-center justify-between"><span className="text-slate-500">VAT <input className="mx-1 w-12 rounded border border-slate-300 px-1 text-center" value={vatRate} onChange={(e) => setVatRate(Number(e.target.value))} />%</span><span className="font-medium">AED {totals.vatAmount.toLocaleString()}</span></div>
             <div className="flex justify-between border-t border-slate-200 pt-1.5 text-base font-semibold"><span>Grand Total</span><span>AED {totals.grandTotal.toLocaleString()}</span></div>
+            {isProforma && (
+              <div className="mt-2 space-y-1.5 border-t border-slate-200 pt-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Advance Payment{advancePct ? <span className="ml-1 text-xs text-slate-400">({advancePct}%)</span> : null}</span>
+                  <span className="flex items-center gap-1">AED <input className="w-24 rounded border border-slate-300 px-2 py-0.5 text-right" inputMode="decimal" placeholder="0" value={advance} onChange={(e) => setAdvance(e.target.value)} /></span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-slate-400">Quick:</span>
+                  {[50, 40, 10, 100].map((pct) => (
+                    <button key={pct} type="button" onClick={() => setAdvancePct(pct)} className="rounded border border-slate-300 px-1.5 py-0.5 text-xs text-slate-600 hover:bg-slate-100">{pct}%</button>
+                  ))}
+                </div>
+                <div className="flex justify-between font-semibold text-red-600"><span>Balance Due</span><span>AED {balanceDue.toLocaleString()}</span></div>
+              </div>
+            )}
           </div>
         </div>
       </section>

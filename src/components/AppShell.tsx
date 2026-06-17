@@ -4,12 +4,13 @@ import { SignOutButton } from "./SignOutButton";
 import { MobileNav } from "./MobileNav";
 import { FlashToast } from "./FlashToast";
 import { cn } from "@/utils/cn";
-import { getProfile, canSeeQuotes, canSeeInvoices } from "@/utils/profile";
+import { getProfile, canSeeQuotes, canSeeInvoices, canSeeProformas } from "@/utils/profile";
 
-type NavItem = { href: string; label: string; key: string; superOnly?: boolean; need?: "quotes" | "invoices" };
+type NavItem = { href: string; label: string; key: string; superOnly?: boolean; need?: "quotes" | "invoices" | "proforma" };
 const NAV: NavItem[] = [
   { href: "/", label: "Dashboard", key: "dashboard" },
   { href: "/quotes?type=quote", label: "Quotes", key: "quotes", need: "quotes" },
+  { href: "/quotes?type=proforma", label: "Pro Forma", key: "proforma", need: "proforma" },
   { href: "/quotes?type=invoice", label: "Invoices", key: "invoices", need: "invoices" },
   { href: "/clients", label: "Clients", key: "clients" },
   { href: "/settings", label: "Settings", key: "settings", superOnly: true },
@@ -49,6 +50,7 @@ export async function AppShell({
     if (n.superOnly && !isSuper) return false;
     if (n.need === "quotes" && !canSeeQuotes(profile.role)) return false;
     if (n.need === "invoices" && !canSeeInvoices(profile.role)) return false;
+    if (n.need === "proforma" && !canSeeProformas(profile.role)) return false;
     return true;
   });
 

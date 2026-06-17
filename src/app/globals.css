@@ -54,3 +54,19 @@ select {
   background: #b08d57;
   color: #fff;
 }
+
+/* Tailwind v4's reset sets interactive elements to cursor:default — restore the
+   pointer so every button/select/clickable feels clickable. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+select:not(:disabled),
+summary,
+label[for] {
+  cursor: pointer;
+}
+button:disabled,
+[role="button"][aria-disabled="true"],
+select:disabled,
+[aria-busy="true"] {
+  cursor: not-allowed;
+}

@@ -18,7 +18,7 @@ export function DocumentsFilters({ clients = [], lockedType }: { clients?: { id:
   const [pending, start] = useTransition();
 
   const basePath = lockedType ? `/quotes?type=${lockedType}` : "/quotes";
-  const statusOptions = lockedType === "invoice"
+  const statusOptions = lockedType === "invoice" || lockedType === "proforma"
     ? ["draft", "sent", "paid", "lost"]
     : lockedType === "quote"
       ? ["draft", "sent", "won", "lost", "imported"]
@@ -85,6 +85,7 @@ export function DocumentsFilters({ clients = [], lockedType }: { clients?: { id:
           <select className={inp} value={type} onChange={(e) => setType(e.target.value)}>
             <option value="">All types</option>
             <option value="quote">Quotations</option>
+            <option value="proforma">Pro Forma</option>
             <option value="invoice">Tax Invoices</option>
           </select>
         )}

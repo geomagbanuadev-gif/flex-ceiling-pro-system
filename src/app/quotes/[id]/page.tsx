@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { ConvertButton } from "@/components/ConvertButton";
+import { ProformaButton } from "@/components/ProformaButton";
 import { DuplicateButton } from "@/components/DuplicateButton";
 import { DeleteButton } from "@/components/DeleteButton";
 import { StatusControl } from "@/components/StatusControl";
@@ -18,6 +19,8 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
   const { data: doc } = await supabase.from("documents").select("*").eq("id", id).single();
   if (!doc) notFound();
   const { data: items } = await supabase.from("document_items").select("*").eq("document_id", id).order("sort_order");
+  const docWord = doc.type === "invoice" ? "Tax Invoice" : doc.type === "proforma" ? "Pro Forma" : "Quotation";
+  const typeKey: "quote" | "invoice" | "proforma" = doc.type === "invoice" ? "invoice" : doc.type === "proforma" ? "proforma" : "quote";
 
   // audit trail — resolve creator/updater to emails
   const auditIds = [doc.created_by, doc.updated_by].filter(Boolean);
@@ -37,11 +40,11 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
 
   return (
     <AppShell
-      active={doc.type === "invoice" ? "invoices" : "quotes"}
-      title={`${doc.type === "invoice" ? "Tax Invoice" : "Quotation"} ${doc.number}`}
+      active={typeKey === "invoice" ? "invoices" : typeKey === "proforma" ? "proforma" : "quotes"}
+      title={`${docWord} ${doc.number}`}
       action={
         <div className="flex gap-2">
-          <Link href="/quotes" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">← Back</Link>
+          <Link href={`/quotes?type=${typeKey}`} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">← Back</Link>
           <Link href={`/quotes/${id}/edit`} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">Edit</Link>
           <a href={`/quotes/${id}/pdf`} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy-700">Open / Print PDF</a>
         </div>
@@ -51,7 +54,7 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
         <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
           <span className="font-medium">Status</span>
-          <StatusControl docId={id} type={doc.type === "invoice" ? "invoice" : "quote"} current={doc.status} />
+          <StatusControl docId={id} type={typeKey} current={doc.status} />
           {expiry && (
             <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${expiry.expired ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-600"}`}>
               {expiry.expired ? `Expired ${expiry.until}` : `Valid until ${expiry.until}`}
@@ -60,9 +63,10 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <ShareButton docId={id} docType={doc.type} initialToken={doc.share_token ?? null} />
-          {doc.type === "quote" && <ConvertButton quoteId={id} />}
+          {typeKey === "quote" && <ProformaButton sourceId={id} />}
+          {(typeKey === "quote" || typeKey === "proforma") && <ConvertButton quoteId={id} />}
           <DuplicateButton docId={id} />
-          <DeleteButton docId={id} label={`${doc.type === "invoice" ? "Tax Invoice" : "Quotation"} ${doc.number}`} />
+          <DeleteButton docId={id} label={`${docWord} ${doc.number}`} />
         </div>
       </div>
 
@@ -76,7 +80,7 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
             {doc.contact_person && <p className="text-slate-600">{doc.contact_person}{doc.contact_phone ? ` · ${doc.contact_phone}` : ""}</p>}
             {doc.client_address && <p className="text-slate-600">{doc.client_address}</p>}
             {doc.reference && <p className="mt-2 text-slate-500">{doc.reference}</p>}
-            {doc.type === "invoice" && doc.converted_from && (
+            {(doc.type === "invoice" || doc.type === "proforma") && doc.converted_from && (
               <p className="mt-2 text-xs text-slate-400">Generated from quotation <Link href={`/quotes/${doc.converted_from}`} className="text-navy-600 hover:underline">#{doc.converted_from.slice(0, 8)}</Link></p>
             )}
           </div>
@@ -107,6 +111,12 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
               {doc.discount ? <div className="flex justify-between"><span className="text-slate-500">Discount</span><span>- {money(doc.discount)}</span></div> : null}
               <div className="flex justify-between"><span className="text-slate-500">VAT {doc.vat_rate ?? 5}%</span><span>{money(doc.vat_amount)}</span></div>
               <div className="flex justify-between border-t border-slate-200 pt-1.5 text-base font-semibold text-slate-900"><span>Grand Total</span><span>{money(doc.grand_total)}</span></div>
+              {doc.type === "proforma" && (
+                <div className="mt-1.5 space-y-1 border-t border-slate-200 pt-1.5">
+                  <div className="flex justify-between"><span className="text-slate-500">Advance Payment</span><span>{money(doc.advance_amount)}</span></div>
+                  <div className="flex justify-between font-semibold text-red-600"><span>Balance Due</span><span>{money((doc.grand_total ?? 0) - (doc.advance_amount ?? 0))}</span></div>
+                </div>
+              )}
             </div>
           </div>
           {doc.notes ? <p className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{doc.notes}</p> : null}

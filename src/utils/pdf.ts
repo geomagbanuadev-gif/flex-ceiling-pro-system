@@ -20,7 +20,7 @@ export async function renderDocumentPdf(doc: Row, items: Row[], fallbackSettings
   const stampSrc = asset("stamp.png");
   const settings = (doc.supplier_snapshot as Row) ?? fallbackSettings ?? {};
   const props = { doc, items, settings, logoSrc, stampSrc } as unknown as Parameters<typeof QuoteDocument>[0];
-  const element = doc.type === "invoice"
+  const element = doc.type === "invoice" || doc.type === "proforma"
     ? InvoiceDocument(props as unknown as Parameters<typeof InvoiceDocument>[0])
     : QuoteDocument(props);
   return renderToBuffer(element);
@@ -28,7 +28,7 @@ export async function renderDocumentPdf(doc: Row, items: Row[], fallbackSettings
 
 /** Build an inline-PDF HTTP response with a sensible filename. */
 export function pdfResponse(pdf: Buffer | Uint8Array, doc: Row, disposition: "inline" | "attachment" = "inline") {
-  const prefix = doc.type === "invoice" ? "Tax-Invoice" : "Quotation";
+  const prefix = doc.type === "invoice" ? "Tax-Invoice" : doc.type === "proforma" ? "Proforma" : "Quotation";
   return new Response(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",

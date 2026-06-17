@@ -6,8 +6,9 @@ import { DocumentsFilters } from "@/components/DocumentsFilters";
 import { Pagination } from "@/components/Pagination";
 import { PAGE_SIZES } from "@/utils/pagination";
 import { TableSkeleton } from "@/components/TableSkeleton";
-import { newInvoice } from "@/app/quotes/actions";
-import { getProfile, canSeeQuotes, canSeeInvoices } from "@/utils/profile";
+import { newInvoice, newProforma } from "@/app/quotes/actions";
+import { SubmitButton } from "@/components/SubmitButton";
+import { getProfile, canSeeQuotes, canSeeInvoices, canSeeProformas } from "@/utils/profile";
 import { fmtDate } from "@/utils/format";
 import { StatusBadge } from "@/components/StatusBadge";
 
@@ -19,9 +20,9 @@ export default async function DocumentsPage(props: PageProps<"/quotes">) {
   const me = await getProfile();
   const role = me?.role ?? "super";
   const typeParam = typeof sp.type === "string" ? sp.type : "";
-  const lockedType = typeParam === "invoice" || typeParam === "quote" ? typeParam : undefined;
-  const active = typeParam === "invoice" ? "invoices" : "quotes";
-  const title = typeParam === "invoice" ? "Tax Invoices" : typeParam === "quote" ? "Quotations" : "Documents";
+  const lockedType = ["invoice", "quote", "proforma"].includes(typeParam) ? typeParam : undefined;
+  const active = typeParam === "invoice" ? "invoices" : typeParam === "proforma" ? "proforma" : typeParam === "quote" ? "quotes" : undefined;
+  const title = typeParam === "invoice" ? "Tax Invoices" : typeParam === "proforma" ? "Pro Forma Invoices" : typeParam === "quote" ? "Quotations" : "Documents";
 
   const exportParams = new URLSearchParams();
   for (const [k, v] of Object.entries(sp)) if (typeof v === "string" && v && k !== "page" && k !== "size") exportParams.set(k, v);
@@ -37,14 +38,21 @@ export default async function DocumentsPage(props: PageProps<"/quotes">) {
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" /></svg>
             Export
           </a>
-          {canSeeInvoices(role) && typeParam !== "quote" && (
-            <form action={newInvoice}>
-              <button type="submit" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">
-                + Tax Invoice
-              </button>
+          {canSeeProformas(role) && (typeParam === "" || typeParam === "proforma") && (
+            <form action={newProforma}>
+              <SubmitButton pendingLabel="Creating…" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">
+                + Pro Forma
+              </SubmitButton>
             </form>
           )}
-          {canSeeQuotes(role) && typeParam !== "invoice" && (
+          {canSeeInvoices(role) && (typeParam === "" || typeParam === "invoice") && (
+            <form action={newInvoice}>
+              <SubmitButton pendingLabel="Creating…" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">
+                + Tax Invoice
+              </SubmitButton>
+            </form>
+          )}
+          {canSeeQuotes(role) && (typeParam === "" || typeParam === "quote") && (
             <Link href="/quotes/new" className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy-700">
               + New Quotation
             </Link>
@@ -65,7 +73,9 @@ export default async function DocumentsPage(props: PageProps<"/quotes">) {
 async function FilterBar({ lockedType }: { lockedType?: string }) {
   const supabase = await createClient();
   const { data } = await supabase.from("clients").select("id, name").order("name");
-  return <DocumentsFilters clients={data ?? []} lockedType={lockedType} />;
+  // key by tab so switching Quotes/Pro Forma/Invoices resets the controls from the
+  // URL (no stale filters leaking between tabs).
+  return <DocumentsFilters key={lockedType ?? "all"} clients={data ?? []} lockedType={lockedType} />;
 }
 
 async function DocumentsTable({ sp }: { sp: Record<string, string | string[] | undefined> }) {
@@ -117,7 +127,7 @@ async function DocumentsTable({ sp }: { sp: Record<string, string | string[] | u
                   <Link href={`/quotes/${d.id}`} className="font-medium text-navy hover:underline before:absolute before:inset-0">{d.number}</Link>
                 </td>
                 <td className="px-4 py-2.5">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${d.type === "invoice" ? "bg-gold/10 text-gold" : "bg-navy/10 text-navy"}`}>{d.type}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${d.type === "invoice" ? "bg-gold/10 text-gold" : d.type === "proforma" ? "bg-emerald-100 text-emerald-700" : "bg-navy/10 text-navy"}`}>{d.type === "proforma" ? "pro forma" : d.type}</span>
                 </td>
                 <td className="px-4 py-2.5"><StatusBadge status={d.status} /></td>
                 <td className="px-4 py-2.5 text-slate-600">{fmtDate(d.doc_date)}</td>

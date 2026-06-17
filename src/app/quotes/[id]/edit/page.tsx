@@ -18,11 +18,11 @@ export default async function EditDocumentPage(props: PageProps<"/quotes/[id]/ed
   const doc = docRes.data;
   if (!doc) notFound();
   const settings = settingsRes.data;
-  const docWord = doc.type === "invoice" ? "Tax Invoice" : "Quotation";
+  const docWord = doc.type === "invoice" ? "Tax Invoice" : doc.type === "proforma" ? "Pro Forma" : "Quotation";
 
   const initial: QuoteInitial = {
     id: doc.id,
-    type: doc.type === "invoice" ? "invoice" : "quote",
+    type: doc.type === "invoice" ? "invoice" : doc.type === "proforma" ? "proforma" : "quote",
     clientId: doc.client_id,
     clientName: doc.client_name ?? "",
     clientTrn: doc.client_trn ?? "",
@@ -37,6 +37,7 @@ export default async function EditDocumentPage(props: PageProps<"/quotes/[id]/ed
     validityDays: doc.validity_days ?? 7,
     vatRate: doc.vat_rate ?? 5,
     discount: doc.discount ?? 0,
+    advanceAmount: doc.advance_amount ?? 0,
     notes: doc.notes ?? "",
     items: (itemsRes.data ?? []).map((it) => ({
       description: it.description ?? "",

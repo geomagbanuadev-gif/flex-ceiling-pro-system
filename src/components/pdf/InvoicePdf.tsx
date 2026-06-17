@@ -61,9 +61,10 @@ const money = (v: number | null | undefined) =>
   v == null ? "" : "AED " + Number(v).toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 type Doc = {
-  number: string; doc_date: string | null;
+  type?: string | null; number: string; doc_date: string | null;
   client_name: string | null; client_trn: string | null; client_address: string | null; client_email: string | null;
   subtotal: number | null; discount: number | null; vat_rate: number | null; vat_amount: number | null; grand_total: number | null;
+  advance_amount?: number | null;
   amount_in_words: string | null; notes: string | null;
 };
 type Item = { sr_no: number | null; description: string | null; area: number | null; unit: string | null; rate: number | null; amount: number | null };
@@ -91,6 +92,9 @@ type Settings = {
 
 export function InvoiceDocument({ doc, items, settings, logoSrc, stampSrc }: { doc: Doc; items: Item[]; settings: Settings; logoSrc?: string; stampSrc?: string }) {
   const words = doc.amount_in_words || amountInWords(doc.grand_total);
+  const isProforma = doc.type === "proforma";
+  const advance = Number(doc.advance_amount ?? 0);
+  const balanceDue = Number(doc.grand_total ?? 0) - advance;
   return (
     <Document>
       <Page size="A4" style={s.page}>
@@ -106,9 +110,9 @@ export function InvoiceDocument({ doc, items, settings, logoSrc, stampSrc }: { d
         <View style={s.goldRule} />
 
         <View style={s.titleRow}>
-          <Text style={s.title}>TAX INVOICE</Text>
+          <Text style={isProforma ? [s.title, { fontSize: 19 }] : s.title}>{isProforma ? "PROFORMA INVOICE" : "TAX INVOICE"}</Text>
           <View style={s.metaBox}>
-            <View style={s.metaCell}><Text style={s.metaLabel}>Invoice No.</Text><Text style={s.metaVal}>{doc.number}</Text></View>
+            <View style={s.metaCell}><Text style={s.metaLabel}>{isProforma ? "Proforma No." : "Invoice No."}</Text><Text style={s.metaVal}>{doc.number}</Text></View>
             <View style={s.metaCell}><Text style={s.metaLabel}>Date</Text><Text style={s.metaVal}>{doc.doc_date ?? ""}</Text></View>
           </View>
         </View>
@@ -148,6 +152,12 @@ export function InvoiceDocument({ doc, items, settings, logoSrc, stampSrc }: { d
             {doc.discount ? <View style={s.totRow}><Text style={{ color: MUTED }}>Discount</Text><Text style={{ fontFamily: "Helvetica-Bold" }}>- {money(doc.discount)}</Text></View> : null}
             <View style={s.totRow}><Text style={{ color: MUTED }}>VAT {doc.vat_rate ?? 5}%</Text><Text style={{ fontFamily: "Helvetica-Bold" }}>{money(doc.vat_amount)}</Text></View>
             <View style={s.totGrand}><Text style={s.totGrandTxt}>Grand Total</Text><Text style={s.totGrandTxt}>{money(doc.grand_total)}</Text></View>
+            {isProforma ? (
+              <>
+                <View style={s.totRow}><Text style={{ color: MUTED }}>Advance Payment</Text><Text style={{ fontFamily: "Helvetica-Bold" }}>{money(advance)}</Text></View>
+                <View style={s.totRow}><Text style={{ color: "#c0392b", fontFamily: "Helvetica-Bold" }}>Balance Due</Text><Text style={{ color: "#c0392b", fontFamily: "Helvetica-Bold" }}>{money(balanceDue)}</Text></View>
+              </>
+            ) : null}
           </View>
         </View>
 
