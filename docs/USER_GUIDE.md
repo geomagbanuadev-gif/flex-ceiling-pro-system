@@ -46,6 +46,16 @@ The system replaces the old "type it in Excel, export a PDF" workflow. With it y
 
 Every quote, pro forma and invoice is saved automatically, so nothing is ever lost.
 
+### Quick start — the everyday flow
+
+1. **Quote** the client: *Quotes → + New Quotation → fill in → Save*.
+2. (Optional) **Request an advance**: open the quote → *Generate Pro Forma → set the advance → Save*.
+3. **Invoice** when approved: open the quote → *Generate Tax Invoice*.
+4. **Send it**: open the document → *Open / Print PDF* (to print/save) or *Share* (private link).
+5. **Track it**: set the status (Won / Paid) so your Dashboard stays accurate.
+
+Everything else in this guide is detail around these five steps.
+
 ---
 
 ## 2. Logging in
@@ -236,12 +246,27 @@ they don't need an account, and they can't see anything else in your system.
 
 ## 11. Editing, duplicating & deleting
 
-- **Edit** — open a document and click **Edit**, make changes, then **Save changes**.
-- **Duplicate** — click **Duplicate** to create a new draft copy (with a fresh number),
-  ready to edit. Great for similar repeat jobs.
-- **Delete** — click **Delete** and confirm in the pop-up. *Deleting is permanent.*
+Editing works **the same way for quotations, pro formas and tax invoices.**
 
-After deleting, you're returned to the correct list (e.g. delete a quote → back to Quotes).
+**To edit any document:**
+1. Open the document (from a list or the Dashboard).
+2. Click **Edit** (top right).
+3. Change anything you need:
+   - Swap the **client**, or edit their details.
+   - Add a **line item** (**+ Add row**), change a **description / area / rate**
+     (the amount recalculates), or **Remove** a row.
+   - Adjust the **discount**, **VAT %**, **payment terms**, **validity**, or the **note**.
+   - On a **pro forma**, change the **Advance Payment** (the Balance Due updates).
+4. Click **Save changes**. The **PDF preview updates instantly** to match.
+
+> The document keeps its number and status when you edit — only the content changes.
+
+**Duplicate** — open a document and click **Duplicate**. The system makes a **new draft
+copy** with a fresh number, ready to edit. Perfect for repeat or similar jobs, so you don't
+start from scratch.
+
+**Delete** — click **Delete** and confirm in the pop-up window. *Deleting is permanent.*
+After deleting you're returned to the matching list (delete a quote → back to Quotes).
 
 ---
 
@@ -272,25 +297,39 @@ Click **Clients** in the sidebar to see your customer list.
 
 ## 14. Company settings
 
-*(Super users only.)* Click **Settings** to manage the details that appear on your PDFs:
+*(Super users only.)* Click **Settings** in the sidebar. This is where you set the details
+that appear on every PDF you produce. Update the fields and click **Save**.
 
-- Company legal name, address, email, phone, **TRN**.
-- **Bank details** (account name, number, IBAN, currency, bank).
-- Default **payment terms** and **quote validity**.
-- Document number **prefixes** and the default **VAT rate**.
+**Company details** (printed at the top of each document):
+- **Legal name** — your registered company name.
+- **Address**, **Email**, **Phone**.
+- **TRN** — your Tax Registration Number (shown on tax invoices).
 
-Changes here apply to **new** documents going forward.
+**Bank details** (printed on the document so clients know where to pay):
+- **Account name**, **Account number**, **IBAN**, **Currency**, **Bank name**.
+
+**Defaults** (used to pre-fill new documents, so you type less):
+- **Default payment terms** — e.g. *50% advance / 40% on delivery / 10% on installation*.
+- **Default quote validity (days)** — how long new quotes stay valid.
+- **VAT rate** — the default tax rate (5% in the UAE).
+- **Number prefixes** — the prefixes for quote, pro forma and invoice numbers.
+
+> Changes apply to **new** documents going forward. Documents you've already issued keep
+> the details they were created with, so old invoices never change.
 
 ---
 
 ## 15. Users & access levels
 
-*(Super users only.)* Click **Users** to control who can log in.
+*(Super users only.)* Click **Users** in the sidebar to control who can log in and what
+they can see. The page lists everyone, with their access level and status.
 
 **Add a user:**
-1. Click to add a user, enter their **email**, choose an **access level**, and generate a
-   **temporary password** to give them.
-2. They log in and should **change their password** (see next section).
+1. In the **Add user** form, enter the person's **email**.
+2. Choose their **access level** (see the table below).
+3. Click **Generate** to create a **temporary password** (or type one).
+4. Save, then give them the email + temporary password.
+5. On first login they should **change their password** (see section 16).
 
 **Access levels:**
 
@@ -301,9 +340,14 @@ Changes here apply to **new** documents going forward.
 | **Quotes** | Quotations only |
 | **Invoices** | Tax invoices and pro formas only |
 
-**Activate / revoke:** you can switch a user's access on or off at any time. A new user has
-**no access** until you enable them. *A super user cannot be revoked or demoted* (this
-prevents anyone from being locked out).
+**Activate / revoke access:**
+- A brand-new user starts with **no access** until you switch them on.
+- You can **enable or disable** any user at any time — a disabled user can no longer log in.
+- *A super user cannot be revoked or demoted* — this safety rule prevents anyone from
+  accidentally locking everyone out.
+
+> Tip: give people the **lowest** access they need — e.g. someone who only handles
+> quotations gets the **Quotes** level.
 
 ---
 

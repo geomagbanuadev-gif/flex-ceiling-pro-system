@@ -43,3 +43,4 @@ next-env.d.ts
 # one-time data import scripts (contain client PII — already applied)
 /supabase/import.sql
 /supabase/reimport.sql
+docs/*.mp4
