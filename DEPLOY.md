@@ -15,10 +15,13 @@ each can see. It is **not** a public/commercial site.
 ---
 
 ## Env vars (have these ready)
+
+The three values from your local `.env.local` — see [`.env.example`](.env.example) for the format:
+
 ```
-NEXT_PUBLIC_SUPABASE_URL             = https://zpcmidxddczjsuvlcouv.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = sb_publishable_wlsVVQLnZX9gdr2yxC6ngA_7SA5UPG4
-SUPABASE_SERVICE_ROLE_KEY            = (secret — the long eyJ… value from admin/.env.local)
+NEXT_PUBLIC_SUPABASE_URL             = https://<your-project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = sb_publishable_xxxxxxxx
+SUPABASE_SERVICE_ROLE_KEY            = (secret — never commit; server-only)
 ```
 
 ## 1 — Deploy on Vercel
@@ -46,5 +49,3 @@ SUPABASE_SERVICE_ROLE_KEY            = (secret — the long eyJ… value from ad
 - ✅ Supabase public **sign-ups OFF**.
 - ✅ RLS + roles enforce access; users managed in the app's Users page.
 - ✅ Share links unguessable + token-scoped (one document only).
-
-*(A Render blueprint `render.yaml` is also in the repo if you ever switch hosts.)*
