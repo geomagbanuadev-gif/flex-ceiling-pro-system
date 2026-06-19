@@ -1,153 +1,88 @@
 # FlexCeiling Pro — Quote &amp; Invoice System
 
-Internal web app for **FlexCeiling Pro Solution General Trading FZ LLC** that replaces the old
-manual Excel → PDF workflow. You fill in a form, the data is saved to a database, and a clean,
-print-perfect PDF is generated on demand — consistent every time.
+Internal web application for **FlexCeiling Pro Solution General Trading FZ LLC** for creating and
+managing quotations, pro forma invoices, and tax invoices. Capture a job in a form, store it in
+Postgres, and generate a clean, branded PDF on demand.
 
-**Live:** https://admin.flex-ceiling-pro.com · internal access only.
-Companion to the public marketing site (separate repo: `flex-ceiling-pro-website`).
+**Live:** https://admin.flex-ceiling-pro.com · internal access only · _proprietary._
 
-> 📘 End-user manual: [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) (+ handover PDF) ·
-> 🎬 walkthrough script: [`docs/VIDEO_SCRIPT.md`](docs/VIDEO_SCRIPT.md)
+## Features
 
----
+- Quotations, pro forma invoices, and tax invoices with one-click conversions
+- Automatic calculations (area × rate, VAT, advance / balance) and branded, on-demand PDFs
+- Secure, token-scoped client **share links** (one document, no login required)
+- Clients directory, dashboard, search / filter / sort / CSV export
+- Role-based access (Super / Staff / Quotes / Invoices) with user management
 
-## ✨ Features
+## Tech stack
 
-**Documents**
-- **Quotations**, **Pro Forma invoices** (advance payment + balance due), and **Tax Invoices**
-- One-click conversions: **Quote → Pro Forma** and **Quote/Pro Forma → Tax Invoice**
-  (copies client + line items; invoices get the amount in words; source quote is marked *Won*)
-- Live auto-calculations: amount = area × rate, discount, VAT, grand total (and advance/balance)
-- Duplicate · edit · delete · status workflow (Draft / Sent / Won / Paid / Lost)
+Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Supabase (Postgres + Auth + RLS) ·
+`@react-pdf/renderer` · Vitest · deployed on Vercel.
 
-**Output &amp; sharing**
-- Branded **PDF** generated on demand with `@react-pdf/renderer` (header + TRN + logo, line
-  items, totals, amount in words, RAK bank details, company stamp) — never stored, always current
-- **Secure share links** — unguessable, token-scoped public URL that exposes *only* that one
-  document's PDF (no login required for the recipient); revocable
+## Prerequisites
 
-**Operations**
-- **Dashboard** — outstanding, invoiced totals, quote conversion, 6-month chart, quote pipeline,
-  top clients, recent documents
-- **Clients** — directory with full per-client document history
-- **Search / filter / sort / pagination** + **CSV export** for accounting
+- Node.js 20+
+- A Supabase project
 
-**Admin**
-- **Settings** — company details, TRN, bank, default payment terms/validity, number prefixes, VAT
-- **Users &amp; roles** — Super / Staff / Quotes / Invoices, with activate/revoke
-- **Audit trail** — `created_by` / `updated_by` on every record
-
-## 🧰 Tech stack
-
-| Layer | Tech |
-|---|---|
-| Framework | Next.js 16 (App Router, Server Actions) · TypeScript · Tailwind CSS v4 |
-| Backend / DB | Supabase (Postgres + Auth + Row-Level Security) |
-| PDF | `@react-pdf/renderer` (Node runtime) |
-| Testing | Vitest |
-| Hosting | Vercel (CD) · Cloudflare DNS · Supabase |
-
-## 🏗️ Architecture &amp; data model
-
-A single Next.js app handles UI, server actions, and PDF routes. Business logic lives in pure,
-unit-tested modules (`src/utils/totals.ts`, `docNumber.ts`, `docRules.ts`, `roles.ts`).
-
-**Tables** (see [`supabase/schema.sql`](supabase/schema.sql)):
-
-`company_settings` · `clients` · `catalog_items` · `documents` (type = `quote` \| `invoice` \|
-`proforma`) · `document_items` · `profiles` (roles)
-
-`schema.sql` is the **single source of truth** — it creates the tables, the RBAC roles/profiles,
-triggers, and all Row-Level Security policies. Idempotent; safe to re-run.
-
-## 🔐 Security
-
-- **RLS enforced** at the database — unauthenticated requests return no rows (verified by tests)
-- **Role-based access:** Super (everything + users/settings), Staff (all docs), Quotes (quotes
-  only), Invoices (tax invoices + pro formas)
-- Public **sign-ups are OFF** — accounts are created only by a super user on the in-app Users page
-- The **service-role key is server-only** (never shipped to the browser); share tokens are
-  unguessable and scoped to a single document
-
-## ✅ Testing
-
-- **Unit tests (Vitest):** money math, amount-in-words, document numbering, the role × type
-  access matrix, and type-dependent document rules — run with `npm test`
-- **End-to-end "intent" checks** (run against the live DB during releases): RLS blocks anon
-  access, document-type integrity, totals reconcile (`grand = subtotal − discount + VAT`),
-  pro-forma rules, status validity, share-token uniqueness, and an active super exists
-- **Vercel** runs the production build + TypeScript check on every push (deploy gate)
-
-> A GitHub Actions CI pipeline (running the suite on every push/PR) is not set up yet; tests are
-> run on demand via `npm test` and the Vercel build acts as the automated gate.
-
-## 🚀 Deployment
-
-- **Host:** Vercel — **auto-deploys on every push to `main`** (continuous deployment)
-- **Domain:** `admin.flex-ceiling-pro.com` via a Cloudflare CNAME (DNS-only)
-- **Database/Auth:** Supabase (dedicated project)
-- PDF image assets are bundled into the serverless functions via `outputFileTracingIncludes`
-  in [`next.config.ts`](next.config.ts)
-
-Full runbook: [`DEPLOY.md`](DEPLOY.md).
-
-## 🛠️ Getting started
+## Getting started
 
 ```bash
 npm install
+cp .env.example .env.local   # then fill in your Supabase keys
+npm run dev                  # http://localhost:3000
 ```
 
-Create `.env.local`:
+**Database:** run [`supabase/schema.sql`](supabase/schema.sql) once in the Supabase SQL Editor
+(creates tables, roles, and RLS). Add your account in **Supabase → Authentication → Users** — the
+first user is backfilled as an active super. Keep public sign-ups **off** (internal tool).
 
-```dotenv
-NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
-# server-only — never prefix with NEXT_PUBLIC, never commit
-SUPABASE_SERVICE_ROLE_KEY=eyJ...
+### Environment variables
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable (anon) key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service-role key — **server-only**, never commit |
+
+## Scripts
+
+| Command | Purpose |
+|---|---|
+| `npm run dev` | Start the dev server |
+| `npm run build` | Production build (type-check + compile) |
+| `npm run start` | Run the production build |
+| `npm run lint` | Lint |
+| `npm test` | Run the unit test suite (Vitest) |
+
+## Project structure
+
+```
+src/app/          routes (login, dashboard, quotes, clients, settings, users, share)
+src/components/    UI components (shell, forms, PDF documents, …)
+src/utils/         business logic + Supabase clients (+ co-located *.test.ts)
+supabase/          schema.sql (tables + RBAC + RLS)
+docs/              user guide, deployment notes
 ```
 
-One-time database setup:
-
-1. In the **Supabase SQL Editor**, run [`supabase/schema.sql`](supabase/schema.sql).
-2. Add your account: **Supabase → Authentication → Users → Add user** (tick *Auto Confirm*).
-   The first user is backfilled as an active **super** by the schema.
-3. Keep **"Allow new users to sign up" = OFF** (internal-only).
+## Testing
 
 ```bash
-npm run dev      # http://localhost:3000
+npm test
 ```
 
-| Script | Purpose |
-|---|---|
-| `npm run dev` | local dev server |
-| `npm run build` | production build (type-check + compile) |
-| `npm run start` | run the production build |
-| `npm run lint` | lint |
-| `npm test` | run the unit test suite |
-| `npm run test:watch` | unit tests in watch mode |
+Unit tests (Vitest) cover the money math, document numbering, role/access matrix, and document
+rules. The production build + type-check run on every deploy.
 
-## 📁 Structure
+## Deployment
 
-```
-.
-├─ src/
-│  ├─ app/            routes: login, dashboard (/), quotes (list/new/[id]/edit/pdf),
-│  │                  share/[token], clients, settings, users, account
-│  ├─ components/     Shell/AppShell, QuoteForm, StatCard, TypeChip, pdf/QuotePdf, pdf/InvoicePdf, …
-│  └─ utils/          totals · docNumber · docRules · roles · amountInWords · supabase clients
-│                     (+ co-located *.test.ts)
-├─ supabase/
-│  └─ schema.sql      tables + RBAC + RLS (run once in the Supabase SQL Editor)
-├─ docs/              USER_GUIDE.md (+ handover PDF) · VIDEO_SCRIPT.md
-├─ next.config.ts     bundles PDF image assets for serverless
-├─ vitest.config.ts
-└─ DEPLOY.md          deployment runbook
-```
+Auto-deploys to **Vercel** on every push to `main`. See [`DEPLOY.md`](DEPLOY.md) for the full
+runbook (env vars, domain, and Supabase setup).
 
-## 🔒 Notes
+## Documentation
 
-- `.env.local`, `data/`, `supabase/import.sql`, and `docs/*.mp4` are **gitignored** (keys, client
-  data, and large videos stay out of version control).
-- The Supabase project is a **dedicated FlexCeiling account**, separate from any other projects.
-- This is a customized build of Next.js 16 — see [`AGENTS.md`](AGENTS.md) before changing code.
+- [User Guide](docs/USER_GUIDE.md) — end-user manual
+- [Deployment](DEPLOY.md) — hosting & setup runbook
+
+## License
+
+Proprietary © FlexCeiling Pro Solution General Trading FZ LLC. Internal use only.
