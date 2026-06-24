@@ -91,10 +91,11 @@ type Settings = {
 };
 
 export function InvoiceDocument({ doc, items, settings, logoSrc, stampSrc }: { doc: Doc; items: Item[]; settings: Settings; logoSrc?: string; stampSrc?: string }) {
-  const words = doc.amount_in_words || amountInWords(doc.grand_total);
   const isProforma = doc.type === "proforma";
   const advance = Number(doc.advance_amount ?? 0);
   const balanceDue = Number(doc.grand_total ?? 0) - advance;
+  // Pro formas spell out the Balance Due (the amount payable); tax invoices the grand total.
+  const words = isProforma ? amountInWords(balanceDue) : doc.amount_in_words || amountInWords(doc.grand_total);
   return (
     <Document>
       <Page size="A4" style={s.page}>
