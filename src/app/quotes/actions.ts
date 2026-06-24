@@ -6,7 +6,7 @@ import { createClient } from "@/utils/supabase/server";
 import { amountInWords } from "@/utils/amountInWords";
 import { nextDocNumber } from "@/utils/docNumber";
 import { statusesFor, prefixFor, wordsForType, advanceForType, defaultAdvance, type DocType } from "@/utils/docRules";
-import { getProfile, canSeeInvoices } from "@/utils/profile";
+import { getProfile, canSeeInvoices, canSeeReceipts } from "@/utils/profile";
 
 /** Next sequential document number for a type, e.g. "PF-0007". */
 async function nextNumber(
@@ -41,7 +41,7 @@ async function insertDoc(
 ) {
   let res = await supabase.from("documents").insert(row).select("id").single();
   // Gracefully drop columns whose migration hasn't been applied yet.
-  for (const col of ["supplier_snapshot", "advance_amount"]) {
+  for (const col of ["supplier_snapshot", "advance_amount", "payment_method"]) {
     if (res.error && new RegExp(col, "i").test(res.error.message || "")) {
       const rest = { ...row };
       delete rest[col];
@@ -81,6 +81,7 @@ export type QuotePayload = {
   vatAmount: number;
   grandTotal: number;
   advanceAmount: number;
+  paymentMethod?: string;
   items: QuoteItemInput[];
 };
 
@@ -140,6 +141,7 @@ export async function saveQuote(p: QuotePayload) {
     vat_amount: p.vatAmount,
     grand_total: p.grandTotal,
     advance_amount: advanceForType(type, p.advanceAmount),
+    payment_method: type === "receipt" ? p.paymentMethod || "cash" : null,
     amount_in_words: wordsForType(type, p.grandTotal),
     notes: p.notes || null,
     updated_by: user.id,
@@ -323,8 +325,8 @@ export async function duplicateDocument(docId: string) {
   if (sErr || !src) throw new Error("Document not found");
   const { data: items } = await supabase.from("document_items").select("*").eq("document_id", docId).order("sort_order");
 
-  const type: DocType = src.type === "invoice" ? "invoice" : src.type === "proforma" ? "proforma" : "quote";
-  const { data: settings } = await supabase.from("company_settings").select(`quote_prefix, invoice_prefix, proforma_prefix, ${SUPPLIER_COLS}`).eq("id", 1).maybeSingle();
+  const type: DocType = src.type === "invoice" ? "invoice" : src.type === "proforma" ? "proforma" : src.type === "receipt" ? "receipt" : "quote";
+  const { data: settings } = await supabase.from("company_settings").select(`quote_prefix, invoice_prefix, proforma_prefix, receipt_prefix, ${SUPPLIER_COLS}`).eq("id", 1).maybeSingle();
   const number = await nextNumber(supabase, type, prefixFor(type, settings));
 
   const { data: copy, error } = await insertDoc(supabase, {
@@ -348,6 +350,7 @@ export async function duplicateDocument(docId: string) {
     vat_amount: src.vat_amount,
     grand_total: src.grand_total,
     advance_amount: advanceForType(type, src.advance_amount),
+    payment_method: type === "receipt" ? src.payment_method : null,
     amount_in_words: wordsForType(type, src.grand_total),
     notes: src.notes,
     supplier_snapshot: snapshotOf(settings),
@@ -475,6 +478,78 @@ export async function convertToProforma(sourceId: string) {
   }
 
   redirect(`/quotes/${pf.id}/edit?flash=proforma`);
+}
+
+/** Create a fresh blank payment Receipt and open it for editing. */
+export async function newReceipt() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const me = await getProfile();
+  if (me && !canSeeReceipts(me.role)) throw new Error("Not authorized to create receipts");
+
+  const { data: settings } = await supabase.from("company_settings").select(`receipt_prefix, ${SUPPLIER_COLS}`).eq("id", 1).maybeSingle();
+  const number = await nextNumber(supabase, "receipt", prefixFor("receipt", settings));
+
+  const { data: rc, error } = await insertDoc(supabase, { type: "receipt", number, doc_date: new Date().toISOString().slice(0, 10), status: "draft", vat_rate: 0, payment_method: "cash", supplier_snapshot: snapshotOf(settings), created_by: user.id });
+  if (error) throw new Error(error.message);
+  redirect(`/quotes/${rc.id}/edit`);
+}
+
+/** Generate a payment Receipt from a tax invoice or pro forma (acknowledges the
+ *  amount paid; for a pro forma, defaults to its advance). Editable afterwards. */
+export async function convertToReceipt(sourceId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const me = await getProfile();
+  if (me && !canSeeReceipts(me.role)) throw new Error("Not authorized to create receipts");
+
+  const { data: src, error: sErr } = await supabase.from("documents").select("*").eq("id", sourceId).single();
+  if (sErr || !src) throw new Error("Document not found");
+
+  const { data: settings } = await supabase.from("company_settings").select(`receipt_prefix, ${SUPPLIER_COLS}`).eq("id", 1).maybeSingle();
+  const number = await nextNumber(supabase, "receipt", prefixFor("receipt", settings));
+
+  const isPf = src.type === "proforma";
+  const amount = +(((isPf ? src.advance_amount : src.grand_total) ?? 0) as number).toFixed(2);
+  const description = isPf ? "Advance Payment" : `Payment for ${src.number}`;
+
+  const { data: rc, error } = await insertDoc(supabase, {
+    type: "receipt",
+    number,
+    doc_date: new Date().toISOString().slice(0, 10),
+    client_id: src.client_id,
+    client_name: src.client_name,
+    client_trn: src.client_trn,
+    client_address: src.client_address,
+    client_email: src.client_email,
+    contact_person: src.contact_person,
+    contact_phone: src.contact_phone,
+    reference: src.reference,
+    status: "draft",
+    payment_method: "cash",
+    subtotal: amount,
+    discount: 0,
+    vat_rate: 0,
+    vat_amount: 0,
+    grand_total: amount,
+    amount_in_words: amountInWords(amount),
+    converted_from: sourceId,
+    supplier_snapshot: snapshotOf(settings),
+    created_by: user.id,
+  });
+  if (error) throw new Error(error.message);
+
+  await supabase.from("document_items").insert({ document_id: rc.id, sr_no: 1, description, amount, sort_order: 0 });
+
+  redirect(`/quotes/${rc.id}/edit?flash=receipt`);
 }
 
 /** Permanently delete a document and its line items. */

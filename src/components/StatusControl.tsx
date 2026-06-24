@@ -10,17 +10,19 @@ const STATUSES: Record<string, string[]> = {
   quote: ["draft", "sent", "won", "lost"],
   invoice: ["draft", "sent", "paid", "lost"],
   proforma: ["draft", "sent", "paid", "lost"],
+  receipt: ["draft", "issued"],
 };
 const COLORS: Record<string, string> = {
   draft: "bg-slate-100 text-slate-600",
   sent: "bg-blue-100 text-blue-700",
   won: "bg-green-100 text-green-700",
   paid: "bg-green-100 text-green-700",
+  issued: "bg-green-100 text-green-700",
   lost: "bg-red-100 text-red-700",
   imported: "bg-amber-100 text-amber-700",
 };
 
-export function StatusControl({ docId, type, current }: { docId: string; type: "quote" | "invoice" | "proforma"; current: string | null }) {
+export function StatusControl({ docId, type, current }: { docId: string; type: "quote" | "invoice" | "proforma" | "receipt"; current: string | null }) {
   const [pending, start] = useTransition();
   const router = useRouter();
   const toast = useToast();

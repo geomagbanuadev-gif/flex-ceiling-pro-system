@@ -1,13 +1,14 @@
 import { SignOutButton } from "./SignOutButton";
 import { Shell, type ShellNavItem } from "./Shell";
-import { getProfile, canSeeQuotes, canSeeInvoices, canSeeProformas } from "@/utils/profile";
+import { getProfile, canSeeQuotes, canSeeInvoices, canSeeProformas, canSeeReceipts } from "@/utils/profile";
 
-type NavDef = ShellNavItem & { superOnly?: boolean; need?: "quotes" | "invoices" | "proforma" };
+type NavDef = ShellNavItem & { superOnly?: boolean; need?: "quotes" | "invoices" | "proforma" | "receipt" };
 const NAV: NavDef[] = [
   { href: "/", label: "Dashboard", key: "dashboard", group: "main" },
   { href: "/quotes?type=quote", label: "Quotes", key: "quotes", group: "docs", need: "quotes" },
   { href: "/quotes?type=proforma", label: "Pro Forma", key: "proforma", group: "docs", need: "proforma" },
   { href: "/quotes?type=invoice", label: "Invoices", key: "invoices", group: "docs", need: "invoices" },
+  { href: "/quotes?type=receipt", label: "Receipts", key: "receipts", group: "docs", need: "receipt" },
   { href: "/clients", label: "Clients", key: "clients", group: "manage" },
   { href: "/settings", label: "Settings", key: "settings", group: "manage", superOnly: true },
   { href: "/users", label: "Users", key: "users", group: "manage", superOnly: true },
@@ -49,6 +50,7 @@ export async function AppShell({
     if (n.need === "quotes" && !canSeeQuotes(profile.role)) return false;
     if (n.need === "invoices" && !canSeeInvoices(profile.role)) return false;
     if (n.need === "proforma" && !canSeeProformas(profile.role)) return false;
+    if (n.need === "receipt" && !canSeeReceipts(profile.role)) return false;
     return true;
   }).map(({ href, label, key, group }) => ({ href, label, key, group }));
 

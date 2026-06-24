@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { ConvertButton } from "@/components/ConvertButton";
 import { ProformaButton } from "@/components/ProformaButton";
+import { ReceiptButton } from "@/components/ReceiptButton";
 import { DuplicateButton } from "@/components/DuplicateButton";
 import { DeleteButton } from "@/components/DeleteButton";
 import { StatusControl } from "@/components/StatusControl";
@@ -19,8 +20,8 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
   const { data: doc } = await supabase.from("documents").select("*").eq("id", id).single();
   if (!doc) notFound();
   const { data: items } = await supabase.from("document_items").select("*").eq("document_id", id).order("sort_order");
-  const docWord = doc.type === "invoice" ? "Tax Invoice" : doc.type === "proforma" ? "Pro Forma" : "Quotation";
-  const typeKey: "quote" | "invoice" | "proforma" = doc.type === "invoice" ? "invoice" : doc.type === "proforma" ? "proforma" : "quote";
+  const docWord = doc.type === "invoice" ? "Tax Invoice" : doc.type === "proforma" ? "Pro Forma" : doc.type === "receipt" ? "Receipt" : "Quotation";
+  const typeKey: "quote" | "invoice" | "proforma" | "receipt" = doc.type === "invoice" ? "invoice" : doc.type === "proforma" ? "proforma" : doc.type === "receipt" ? "receipt" : "quote";
 
   // audit trail — resolve creator/updater to emails
   const auditIds = [doc.created_by, doc.updated_by].filter(Boolean);
@@ -40,7 +41,7 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
 
   return (
     <AppShell
-      active={typeKey === "invoice" ? "invoices" : typeKey === "proforma" ? "proforma" : "quotes"}
+      active={typeKey === "invoice" ? "invoices" : typeKey === "proforma" ? "proforma" : typeKey === "receipt" ? "receipts" : "quotes"}
       title={`${docWord} ${doc.number}`}
       action={
         <div className="flex gap-2">
@@ -65,6 +66,7 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
           <ShareButton docId={id} docType={doc.type} initialToken={doc.share_token ?? null} />
           {typeKey === "quote" && <ProformaButton sourceId={id} />}
           {(typeKey === "quote" || typeKey === "proforma") && <ConvertButton quoteId={id} />}
+          {(typeKey === "invoice" || typeKey === "proforma") && <ReceiptButton sourceId={id} />}
           <DuplicateButton docId={id} />
           <DeleteButton docId={id} label={`${docWord} ${doc.number}`} />
         </div>
@@ -80,8 +82,8 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
             {doc.contact_person && <p className="text-slate-600">{doc.contact_person}{doc.contact_phone ? ` · ${doc.contact_phone}` : ""}</p>}
             {doc.client_address && <p className="text-slate-600">{doc.client_address}</p>}
             {doc.reference && <p className="mt-2 text-slate-500">{doc.reference}</p>}
-            {(doc.type === "invoice" || doc.type === "proforma") && doc.converted_from && (
-              <p className="mt-2 text-xs text-slate-500">Generated from quotation <Link href={`/quotes/${doc.converted_from}`} className="text-navy-600 hover:underline">#{doc.converted_from.slice(0, 8)}</Link></p>
+            {doc.converted_from && (doc.type === "invoice" || doc.type === "proforma" || doc.type === "receipt") && (
+              <p className="mt-2 text-xs text-slate-500">Generated from <Link href={`/quotes/${doc.converted_from}`} className="text-navy-600 hover:underline">#{doc.converted_from.slice(0, 8)}</Link></p>
             )}
           </div>
 
@@ -107,15 +109,24 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
               </tbody>
             </table>
             <div className="space-y-1 border-t border-slate-200 p-3 text-sm">
-              <div className="flex justify-between"><span className="text-slate-500">Sub Total</span><span>{money(doc.subtotal)}</span></div>
-              {doc.discount ? <div className="flex justify-between"><span className="text-slate-500">Discount</span><span>- {money(doc.discount)}</span></div> : null}
-              <div className="flex justify-between"><span className="text-slate-500">VAT {doc.vat_rate ?? 5}%</span><span>{money(doc.vat_amount)}</span></div>
-              <div className="flex justify-between border-t border-slate-200 pt-1.5 text-base font-semibold text-slate-900"><span>Grand Total</span><span>{money(doc.grand_total)}</span></div>
-              {doc.type === "proforma" && (
-                <div className="mt-1.5 space-y-1 border-t border-slate-200 pt-1.5">
-                  <div className="flex justify-between"><span className="text-slate-500">Advance Payment</span><span>{money(doc.advance_amount)}</span></div>
-                  <div className="flex justify-between font-semibold text-red-600"><span>Balance Due</span><span>{money((doc.grand_total ?? 0) - (doc.advance_amount ?? 0))}</span></div>
-                </div>
+              {doc.type === "receipt" ? (
+                <>
+                  <div className="flex justify-between"><span className="text-slate-500">Payment method</span><span className="font-medium capitalize">{doc.payment_method ?? "cash"}</span></div>
+                  <div className="flex justify-between border-t border-slate-200 pt-1.5 text-base font-semibold text-slate-900"><span>Amount received</span><span>{money(doc.grand_total)}</span></div>
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between"><span className="text-slate-500">Sub Total</span><span>{money(doc.subtotal)}</span></div>
+                  {doc.discount ? <div className="flex justify-between"><span className="text-slate-500">Discount</span><span>- {money(doc.discount)}</span></div> : null}
+                  <div className="flex justify-between"><span className="text-slate-500">VAT {doc.vat_rate ?? 5}%</span><span>{money(doc.vat_amount)}</span></div>
+                  <div className="flex justify-between border-t border-slate-200 pt-1.5 text-base font-semibold text-slate-900"><span>Grand Total</span><span>{money(doc.grand_total)}</span></div>
+                  {doc.type === "proforma" && (
+                    <div className="mt-1.5 space-y-1 border-t border-slate-200 pt-1.5">
+                      <div className="flex justify-between"><span className="text-slate-500">Advance Payment</span><span>{money(doc.advance_amount)}</span></div>
+                      <div className="flex justify-between font-semibold text-red-600"><span>Balance Due</span><span>{money((doc.grand_total ?? 0) - (doc.advance_amount ?? 0))}</span></div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Spinner } from "./Spinner";
 
-const STATUSES = ["draft", "sent", "won", "lost", "paid", "imported"];
+const STATUSES = ["draft", "sent", "won", "lost", "paid", "issued", "imported"];
 const SORTS = [
   { v: "doc_date", l: "Date" },
   { v: "number", l: "Number" },
@@ -20,9 +20,11 @@ export function DocumentsFilters({ clients = [], lockedType }: { clients?: { id:
   const basePath = lockedType ? `/quotes?type=${lockedType}` : "/quotes";
   const statusOptions = lockedType === "invoice" || lockedType === "proforma"
     ? ["draft", "sent", "paid", "lost"]
-    : lockedType === "quote"
-      ? ["draft", "sent", "won", "lost", "imported"]
-      : STATUSES;
+    : lockedType === "receipt"
+      ? ["draft", "issued"]
+      : lockedType === "quote"
+        ? ["draft", "sent", "won", "lost", "imported"]
+        : STATUSES;
   const init = (k: string, d = "") => sp.get(k) ?? d;
   const [q, setQ] = useState(init("q"));
   const [type, setType] = useState(init("type"));
@@ -87,6 +89,7 @@ export function DocumentsFilters({ clients = [], lockedType }: { clients?: { id:
             <option value="quote">Quotations</option>
             <option value="proforma">Pro Forma</option>
             <option value="invoice">Tax Invoices</option>
+            <option value="receipt">Receipts</option>
           </select>
         )}
         <button type="button" onClick={() => setOpen((v) => !v)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-slate-50">

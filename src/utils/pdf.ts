@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { QuoteDocument } from "@/components/pdf/QuotePdf";
 import { InvoiceDocument } from "@/components/pdf/InvoicePdf";
+import { ReceiptDocument } from "@/components/pdf/ReceiptPdf";
 
 function asset(file: string): string | undefined {
   try {
@@ -20,15 +21,17 @@ export async function renderDocumentPdf(doc: Row, items: Row[], fallbackSettings
   const stampSrc = asset("stamp.png");
   const settings = (doc.supplier_snapshot as Row) ?? fallbackSettings ?? {};
   const props = { doc, items, settings, logoSrc, stampSrc } as unknown as Parameters<typeof QuoteDocument>[0];
-  const element = doc.type === "invoice" || doc.type === "proforma"
-    ? InvoiceDocument(props as unknown as Parameters<typeof InvoiceDocument>[0])
-    : QuoteDocument(props);
+  const element = doc.type === "receipt"
+    ? ReceiptDocument(props as unknown as Parameters<typeof ReceiptDocument>[0])
+    : doc.type === "invoice" || doc.type === "proforma"
+      ? InvoiceDocument(props as unknown as Parameters<typeof InvoiceDocument>[0])
+      : QuoteDocument(props);
   return renderToBuffer(element);
 }
 
 /** Build an inline-PDF HTTP response with a sensible filename. */
 export function pdfResponse(pdf: Buffer | Uint8Array, doc: Row, disposition: "inline" | "attachment" = "inline") {
-  const prefix = doc.type === "invoice" ? "Tax-Invoice" : doc.type === "proforma" ? "Proforma" : "Quotation";
+  const prefix = doc.type === "invoice" ? "Tax-Invoice" : doc.type === "proforma" ? "Proforma" : doc.type === "receipt" ? "Receipt" : "Quotation";
   return new Response(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",

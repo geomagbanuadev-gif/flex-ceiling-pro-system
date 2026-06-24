@@ -23,6 +23,7 @@ create table if not exists company_settings (
   quote_prefix      text default '1000-',
   invoice_prefix    text default 'INV-',
   proforma_prefix   text default 'PF-',
+  receipt_prefix    text default 'RCPT-',
   vat_rate          numeric default 5,
   updated_at        timestamptz default now(),
   constraint single_row check (id = 1)
@@ -56,7 +57,7 @@ create table if not exists catalog_items (
 -- ── Documents (quotes + tax invoices) ───────────────────────────────────────
 create table if not exists documents (
   id             uuid primary key default gen_random_uuid(),
-  type           text not null check (type in ('quote','invoice','proforma')),
+  type           text not null check (type in ('quote','invoice','proforma','receipt')),
   number         text not null,
   doc_date       date,
   client_id      uuid references clients on delete set null,
@@ -77,6 +78,7 @@ create table if not exists documents (
   vat_amount     numeric default 0,
   grand_total    numeric default 0,
   advance_amount numeric default 0,   -- pro forma: partial amount requested up-front
+  payment_method text,                -- receipt: 'cash' | 'cheque'
   amount_in_words text,
   supplier_snapshot jsonb,     -- frozen company/bank/TRN details as printed at issue time
   share_token    text,         -- unguessable token for a public read-only share link (null = not shared)
@@ -185,12 +187,12 @@ create policy doc_access on documents for all to authenticated
   using (
     app_user_role() in ('super','staff')
     or (app_user_role() = 'quotes'   and type = 'quote')
-    or (app_user_role() = 'invoices' and type in ('invoice','proforma'))
+    or (app_user_role() = 'invoices' and type in ('invoice','proforma','receipt'))
   )
   with check (
     app_user_role() in ('super','staff')
     or (app_user_role() = 'quotes'   and type = 'quote')
-    or (app_user_role() = 'invoices' and type in ('invoice','proforma'))
+    or (app_user_role() = 'invoices' and type in ('invoice','proforma','receipt'))
   );
 
 -- document_items: inherit access from the parent document
@@ -201,12 +203,12 @@ create policy item_access on document_items for all to authenticated
     select 1 from documents d where d.id = document_id and (
       app_user_role() in ('super','staff')
       or (app_user_role() = 'quotes'   and d.type = 'quote')
-      or (app_user_role() = 'invoices' and d.type in ('invoice','proforma')))))
+      or (app_user_role() = 'invoices' and d.type in ('invoice','proforma','receipt')))))
   with check (exists (
     select 1 from documents d where d.id = document_id and (
       app_user_role() in ('super','staff')
       or (app_user_role() = 'quotes'   and d.type = 'quote')
-      or (app_user_role() = 'invoices' and d.type in ('invoice','proforma')))));
+      or (app_user_role() = 'invoices' and d.type in ('invoice','proforma','receipt')))));
 
 -- clients + catalog: any active user
 drop policy if exists auth_all on clients;

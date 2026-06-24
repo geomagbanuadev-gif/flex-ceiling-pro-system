@@ -6,9 +6,9 @@ import { DocumentsFilters } from "@/components/DocumentsFilters";
 import { Pagination } from "@/components/Pagination";
 import { PAGE_SIZES } from "@/utils/pagination";
 import { TableSkeleton } from "@/components/TableSkeleton";
-import { newInvoice, newProforma } from "@/app/quotes/actions";
+import { newInvoice, newProforma, newReceipt } from "@/app/quotes/actions";
 import { SubmitButton } from "@/components/SubmitButton";
-import { getProfile, canSeeQuotes, canSeeInvoices, canSeeProformas } from "@/utils/profile";
+import { getProfile, canSeeQuotes, canSeeInvoices, canSeeProformas, canSeeReceipts } from "@/utils/profile";
 import { fmtDate } from "@/utils/format";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TypeChip } from "@/components/TypeChip";
@@ -21,9 +21,9 @@ export default async function DocumentsPage(props: PageProps<"/quotes">) {
   const me = await getProfile();
   const role = me?.role ?? "super";
   const typeParam = typeof sp.type === "string" ? sp.type : "";
-  const lockedType = ["invoice", "quote", "proforma"].includes(typeParam) ? typeParam : undefined;
-  const active = typeParam === "invoice" ? "invoices" : typeParam === "proforma" ? "proforma" : typeParam === "quote" ? "quotes" : undefined;
-  const title = typeParam === "invoice" ? "Tax Invoices" : typeParam === "proforma" ? "Pro Forma Invoices" : typeParam === "quote" ? "Quotations" : "Documents";
+  const lockedType = ["invoice", "quote", "proforma", "receipt"].includes(typeParam) ? typeParam : undefined;
+  const active = typeParam === "invoice" ? "invoices" : typeParam === "proforma" ? "proforma" : typeParam === "receipt" ? "receipts" : typeParam === "quote" ? "quotes" : undefined;
+  const title = typeParam === "invoice" ? "Tax Invoices" : typeParam === "proforma" ? "Pro Forma Invoices" : typeParam === "receipt" ? "Payment Receipts" : typeParam === "quote" ? "Quotations" : "Documents";
 
   const exportParams = new URLSearchParams();
   for (const [k, v] of Object.entries(sp)) if (typeof v === "string" && v && k !== "page" && k !== "size") exportParams.set(k, v);
@@ -39,6 +39,13 @@ export default async function DocumentsPage(props: PageProps<"/quotes">) {
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" /></svg>
             Export
           </a>
+          {canSeeReceipts(role) && (typeParam === "" || typeParam === "receipt") && (
+            <form action={newReceipt}>
+              <SubmitButton pendingLabel="Creating…" className="rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-slate-50">
+                + Receipt
+              </SubmitButton>
+            </form>
+          )}
           {canSeeProformas(role) && (typeParam === "" || typeParam === "proforma") && (
             <form action={newProforma}>
               <SubmitButton pendingLabel="Creating…" className="rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-slate-50">
