@@ -85,7 +85,7 @@ export default async function DashboardPage() {
     { label: "Quote conversion", value: `${conversion}%`, tint: "bg-blue-500/10 text-blue-600", icon: I.trend, sub: `${wonCount} of ${quotes.length} won` },
   ];
 
-  const card = "rounded-2xl bg-white p-5 shadow-[var(--shadow-card)] ring-1 ring-slate-200";
+  const card = "min-w-0 rounded-2xl bg-white p-5 shadow-[var(--shadow-card)] ring-1 ring-slate-200";
   const h2 = "text-xs font-semibold uppercase tracking-wider text-slate-500";
 
   return (
@@ -154,7 +154,7 @@ export default async function DashboardPage() {
             {topClients.map((c) => (
               <div key={c.name}>
                 <div className="mb-1 flex justify-between gap-2 text-xs">
-                  <span className="truncate text-slate-600" title={c.name}>{c.name}</span>
+                  <span className="min-w-0 truncate text-slate-600" title={c.name}>{c.name}</span>
                   <span className="shrink-0 font-medium text-slate-700">{money(c.total)}</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-slate-100">
@@ -165,7 +165,7 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        <section className="lg:col-span-2">
+        <section className="min-w-0 lg:col-span-2">
           <div className="mb-3 flex items-center justify-between">
             <h2 className={h2}>Recent documents</h2>
             <Link href="/quotes" className="text-sm font-medium text-navy-600 transition-colors hover:text-navy">View all →</Link>
