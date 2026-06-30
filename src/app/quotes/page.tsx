@@ -12,6 +12,7 @@ import { getProfile, canSeeQuotes, canSeeInvoices, canSeeProformas, canSeeReceip
 import { fmtDate } from "@/utils/format";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TypeChip } from "@/components/TypeChip";
+import { LinkRow } from "@/components/LinkRow";
 
 const money = (v: number | null) => (v == null ? "—" : "AED " + Number(v).toLocaleString());
 const SORT_COLS = ["doc_date", "number", "grand_total", "client_name"];
@@ -130,16 +131,16 @@ async function DocumentsTable({ sp }: { sp: Record<string, string | string[] | u
           </thead>
           <tbody className="divide-y divide-slate-50">
             {(docs ?? []).map((d) => (
-              <tr key={d.id} className="relative cursor-pointer transition-colors hover:bg-slate-50/70">
+              <LinkRow key={d.id} href={`/quotes/${d.id}`} className="cursor-pointer transition-colors hover:bg-slate-50/70">
                 <td className="px-4 py-3">
-                  <Link href={`/quotes/${d.id}`} className="font-semibold text-navy before:absolute before:inset-0 hover:text-navy-600">{d.number}</Link>
+                  <Link href={`/quotes/${d.id}`} className="font-semibold text-navy hover:text-navy-600">{d.number}</Link>
                 </td>
                 <td className="px-4 py-3"><TypeChip type={d.type} /></td>
                 <td className="px-4 py-3"><StatusBadge status={d.status} /></td>
                 <td className="px-4 py-3 text-slate-500">{fmtDate(d.doc_date)}</td>
                 <td className="px-4 py-3 text-slate-700">{d.client_name || "—"}</td>
                 <td className="px-4 py-3 text-right font-semibold tabular-nums text-slate-900">{money(d.grand_total)}</td>
-              </tr>
+              </LinkRow>
             ))}
             {(!docs || docs.length === 0) && (
               <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-500">No documents match your filters.</td></tr>

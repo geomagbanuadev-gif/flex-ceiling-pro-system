@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { ClientsSearch } from "@/components/ClientsSearch";
+import { LinkRow } from "@/components/LinkRow";
 import { Pagination } from "@/components/Pagination";
 import { PAGE_SIZES } from "@/utils/pagination";
 import { TableSkeleton } from "@/components/TableSkeleton";
@@ -77,15 +78,15 @@ async function ClientsTable({ sp }: { sp: Record<string, string | string[] | und
             {(clients ?? []).map((c) => {
               const s = stats.get(c.id);
               return (
-                <tr key={c.id} className="relative cursor-pointer transition-colors hover:bg-slate-50">
+                <LinkRow key={c.id} href={`/clients/${c.id}`} className="cursor-pointer transition-colors hover:bg-slate-50">
                   <td className="px-4 py-2.5">
-                    <Link href={`/clients/${c.id}`} className="font-medium text-navy hover:underline before:absolute before:inset-0">{c.name}</Link>
+                    <Link href={`/clients/${c.id}`} className="font-medium text-navy hover:underline">{c.name}</Link>
                   </td>
                   <td className="px-4 py-2.5 text-slate-500">{c.trn || <span className="text-amber-500">—</span>}</td>
                   <td className="px-4 py-2.5 text-slate-600">{c.contact_person || c.contact_phone || "—"}</td>
                   <td className="px-4 py-2.5 text-right text-slate-600">{s?.n ?? 0}</td>
                   <td className="px-4 py-2.5 text-right font-medium text-slate-900">{money(s?.total ?? 0)}</td>
-                </tr>
+                </LinkRow>
               );
             })}
             {(!clients || clients.length === 0) && (

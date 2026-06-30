@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { ClientForm } from "@/components/ClientForm";
+import { LinkRow } from "@/components/LinkRow";
 import { fmtDate } from "@/utils/format";
 
 const money = (v: number | null) => (v == null ? "—" : "AED " + Number(v).toLocaleString());
@@ -68,12 +69,12 @@ export default async function ClientDetailPage(props: PageProps<"/clients/[id]">
             </thead>
             <tbody className="divide-y divide-slate-100">
               {docs.map((d) => (
-                <tr key={d.id} className="relative cursor-pointer hover:bg-slate-50">
-                  <td className="px-4 py-2.5"><Link href={`/quotes/${d.id}`} className="font-medium text-navy hover:underline before:absolute before:inset-0">{d.number}</Link></td>
+                <LinkRow key={d.id} href={`/quotes/${d.id}`} className="cursor-pointer hover:bg-slate-50">
+                  <td className="px-4 py-2.5"><Link href={`/quotes/${d.id}`} className="font-medium text-navy hover:underline">{d.number}</Link></td>
                   <td className="px-4 py-2.5"><span className="text-xs capitalize text-slate-500">{d.type}</span></td>
                   <td className="px-4 py-2.5 text-slate-600">{fmtDate(d.doc_date)}</td>
                   <td className="px-4 py-2.5 text-right font-medium text-slate-900">{money(d.grand_total)}</td>
-                </tr>
+                </LinkRow>
               ))}
               {docs.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-400">No documents yet.</td></tr>}
             </tbody>

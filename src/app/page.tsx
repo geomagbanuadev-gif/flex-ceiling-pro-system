@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { StatCard } from "@/components/StatCard";
 import { TypeChip } from "@/components/TypeChip";
+import { LinkRow } from "@/components/LinkRow";
 import { fmtDate } from "@/utils/format";
 
 const money = (v: number | null) => "AED " + Number(v ?? 0).toLocaleString("en-AE", { maximumFractionDigits: 0 });
@@ -182,13 +183,13 @@ export default async function DashboardPage() {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {(recentRes.data ?? []).map((d) => (
-                  <tr key={d.id} className="relative cursor-pointer transition-colors hover:bg-slate-50/70">
-                    <td className="px-4 py-3"><Link href={`/quotes/${d.id}`} className="font-semibold text-navy before:absolute before:inset-0 hover:text-navy-600">{d.number}</Link></td>
+                  <LinkRow key={d.id} href={`/quotes/${d.id}`} className="cursor-pointer transition-colors hover:bg-slate-50/70">
+                    <td className="px-4 py-3"><Link href={`/quotes/${d.id}`} className="font-semibold text-navy hover:text-navy-600">{d.number}</Link></td>
                     <td className="px-4 py-3"><TypeChip type={d.type} /></td>
                     <td className="px-4 py-3 text-slate-500">{fmtDate(d.doc_date)}</td>
                     <td className="px-4 py-3 text-slate-700">{d.client_name || "—"}</td>
                     <td className="px-4 py-3 text-right font-semibold tabular-nums text-slate-900">{money(d.grand_total)}</td>
-                  </tr>
+                  </LinkRow>
                 ))}
                 {(!recentRes.data || recentRes.data.length === 0) && (
                   <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-500">No documents found.</td></tr>
