@@ -48,3 +48,6 @@ next-env.d.ts
 # generated handover artifacts (regenerated from docs/*.md — not committed)
 docs/*.pdf
 docs/*.mp4
+
+# working feature specs (planning docs, kept local)
+docs/*_SPEC.md

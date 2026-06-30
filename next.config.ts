@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/quotes/**": ["./public/logo-full.png", "./public/stamp.png", "./public/logo-mark.png"],
     "/share/**": ["./public/logo-full.png", "./public/stamp.png", "./public/logo-mark.png"],
+    "/purchase-orders/**": ["./public/logo-full.png", "./public/stamp.png", "./public/logo-mark.png"],
   },
 };
 

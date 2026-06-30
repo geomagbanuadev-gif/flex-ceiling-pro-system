@@ -1,14 +1,16 @@
 import { SignOutButton } from "./SignOutButton";
 import { Shell, type ShellNavItem } from "./Shell";
-import { getProfile, canSeeQuotes, canSeeInvoices, canSeeProformas, canSeeReceipts } from "@/utils/profile";
+import { getProfile, canSeeQuotes, canSeeInvoices, canSeeProformas, canSeeReceipts, canSeeProcurement } from "@/utils/profile";
 
-type NavDef = ShellNavItem & { superOnly?: boolean; need?: "quotes" | "invoices" | "proforma" | "receipt" };
+type NavDef = ShellNavItem & { superOnly?: boolean; need?: "quotes" | "invoices" | "proforma" | "receipt" | "procurement" };
 const NAV: NavDef[] = [
   { href: "/", label: "Dashboard", key: "dashboard", group: "main" },
   { href: "/quotes?type=quote", label: "Quotes", key: "quotes", group: "docs", need: "quotes" },
   { href: "/quotes?type=proforma", label: "Pro Forma", key: "proforma", group: "docs", need: "proforma" },
   { href: "/quotes?type=invoice", label: "Invoices", key: "invoices", group: "docs", need: "invoices" },
   { href: "/quotes?type=receipt", label: "Receipts", key: "receipts", group: "docs", need: "receipt" },
+  { href: "/suppliers", label: "Suppliers", key: "suppliers", group: "procurement", need: "procurement" },
+  { href: "/purchase-orders", label: "Purchase Orders", key: "purchase-orders", group: "procurement", need: "procurement" },
   { href: "/clients", label: "Clients", key: "clients", group: "manage" },
   { href: "/settings", label: "Settings", key: "settings", group: "manage", superOnly: true },
   { href: "/users", label: "Users", key: "users", group: "manage", superOnly: true },
@@ -51,6 +53,7 @@ export async function AppShell({
     if (n.need === "invoices" && !canSeeInvoices(profile.role)) return false;
     if (n.need === "proforma" && !canSeeProformas(profile.role)) return false;
     if (n.need === "receipt" && !canSeeReceipts(profile.role)) return false;
+    if (n.need === "procurement" && !canSeeProcurement(profile.role)) return false;
     return true;
   }).map(({ href, label, key, group }) => ({ href, label, key, group }));
 

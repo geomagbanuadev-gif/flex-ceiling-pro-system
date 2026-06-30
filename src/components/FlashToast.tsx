@@ -12,6 +12,7 @@ const MESSAGES: Record<string, string> = {
   receipt: "Receipt created — confirm the payment details",
   duplicated: "Duplicated — ready to edit",
   "client-saved": "Client saved",
+  "supplier-saved": "Supplier saved",
 };
 
 export function FlashToast() {

@@ -24,6 +24,7 @@ create table if not exists company_settings (
   invoice_prefix    text default 'INV-',
   proforma_prefix   text default 'PF-',
   receipt_prefix    text default 'RCPT-',
+  po_prefix         text default 'PO-',
   vat_rate          numeric default 5,
   updated_at        timestamptz default now(),
   constraint single_row check (id = 1)
@@ -111,6 +112,50 @@ create table if not exists document_items (
 );
 create index if not exists document_items_doc_idx on document_items (document_id);
 
+-- ── Procurement: suppliers + purchase orders (the buying side) ────────────────
+create table if not exists suppliers (
+  id uuid primary key default gen_random_uuid(),
+  name text not null, trn text, address text, email text, phone text,
+  contact_person text, contact_phone text, default_payment_terms text, notes text,
+  active boolean not null default true,
+  created_at timestamptz default now(), created_by uuid references auth.users
+);
+create index if not exists suppliers_name_idx on suppliers (lower(name));
+
+create table if not exists purchase_orders (
+  id uuid primary key default gen_random_uuid(),
+  number text not null,
+  supplier_id uuid references suppliers on delete set null,
+  supplier_name text, supplier_trn text, supplier_address text, supplier_email text,
+  contact_person text, contact_phone text,
+  po_date date, expected_date date, reference text,
+  status text default 'draft',          -- draft|ordered|partial|received|cancelled
+  subtotal numeric default 0, discount numeric default 0,
+  vat_rate numeric default 5, vat_amount numeric default 0, grand_total numeric default 0,
+  amount_in_words text, notes text,
+  created_at timestamptz default now(), updated_at timestamptz default now(),
+  created_by uuid references auth.users, updated_by uuid references auth.users
+);
+create index if not exists po_number_idx on purchase_orders (number);
+create index if not exists po_supplier_idx on purchase_orders (supplier_id);
+create index if not exists po_date_idx on purchase_orders (po_date desc);
+
+create table if not exists purchase_order_items (
+  id uuid primary key default gen_random_uuid(),
+  purchase_order_id uuid not null references purchase_orders on delete cascade,
+  sr_no int, description text, quantity numeric, unit text default 'pcs',
+  unit_price numeric, amount numeric, sort_order int default 0
+);
+create index if not exists poi_po_idx on purchase_order_items (purchase_order_id);
+
+create table if not exists purchase_payments (
+  id uuid primary key default gen_random_uuid(),
+  purchase_order_id uuid not null references purchase_orders on delete cascade,
+  payment_date date, method text, reference text, amount numeric default 0, notes text,
+  created_at timestamptz default now(), created_by uuid references auth.users
+);
+create index if not exists pp_po_idx on purchase_payments (purchase_order_id);
+
 -- ── Roles / profiles (RBAC) ──────────────────────────────────────────────────
 -- Roles: super (manage users + everything), staff (all documents),
 --        quotes (quotations only), invoices (tax invoices + pro formas only).
@@ -170,6 +215,10 @@ alter table catalog_items    enable row level security;
 alter table documents        enable row level security;
 alter table document_items   enable row level security;
 alter table profiles         enable row level security;
+alter table suppliers            enable row level security;
+alter table purchase_orders      enable row level security;
+alter table purchase_order_items enable row level security;
+alter table purchase_payments    enable row level security;
 
 -- profiles: a user sees their own row; supers see/manage all
 drop policy if exists profiles_read on profiles;
@@ -228,3 +277,16 @@ create policy settings_read  on company_settings for select to authenticated
   using (app_user_role() is not null);
 create policy settings_write on company_settings for update to authenticated
   using (app_user_role() = 'super') with check (app_user_role() = 'super');
+
+-- procurement (suppliers + purchase orders + items + payments): super/staff only
+do $$
+declare t text;
+begin
+  foreach t in array array['suppliers','purchase_orders','purchase_order_items','purchase_payments']
+  loop
+    execute format('drop policy if exists proc_access on %I', t);
+    execute format($f$create policy proc_access on %I for all to authenticated
+      using (app_user_role() in ('super','staff'))
+      with check (app_user_role() in ('super','staff'))$f$, t);
+  end loop;
+end $$;

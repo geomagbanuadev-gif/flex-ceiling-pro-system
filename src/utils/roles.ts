@@ -8,6 +8,8 @@ export const canSeeInvoices = (r: Role) => r === "super" || r === "staff" || r =
 // Pro formas and receipts are billing/payment documents — same access group as tax invoices.
 export const canSeeProformas = (r: Role) => r === "super" || r === "staff" || r === "invoices";
 export const canSeeReceipts = (r: Role) => r === "super" || r === "staff" || r === "invoices";
+// Procurement (suppliers + purchase orders) is internal buying — super/staff only.
+export const canSeeProcurement = (r: Role) => r === "super" || r === "staff";
 
 /** Whether a role may act on a given document type. */
 export function canAccessType(role: Role, type: "quote" | "invoice" | "proforma" | "receipt"): boolean {
