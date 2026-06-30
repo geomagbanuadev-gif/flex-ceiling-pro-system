@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, unstable_rethrow } from "next/navigation";
 import { updateStatus } from "@/app/quotes/actions";
 import { Spinner } from "./Spinner";
 import { useToast } from "./Toast";
@@ -37,6 +37,7 @@ export function StatusControl({ docId, type, current }: { docId: string; type: "
         toast(`Marked as ${status}`);
         router.refresh();
       } catch (e) {
+        unstable_rethrow(e);
         toast(e instanceof Error ? e.message : "Failed to update status", "error");
       }
     });

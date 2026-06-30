@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { saveClient, type ClientPayload } from "@/app/clients/actions";
 
 type Client = Partial<ClientPayload> & { id?: string };
@@ -25,6 +26,7 @@ export function ClientForm({ client }: { client?: Client }) {
       try {
         await saveClient(payload);
       } catch (e) {
+        unstable_rethrow(e);
         setError(e instanceof Error ? e.message : "Failed to save");
       }
     });

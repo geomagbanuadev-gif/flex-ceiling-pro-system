@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, unstable_rethrow } from "next/navigation";
 import { createUser } from "@/app/users/actions";
 import { Spinner } from "./Spinner";
 import { useToast } from "./Toast";
@@ -49,6 +49,7 @@ export function AddUserForm() {
         setRole("staff");
         router.refresh();
       } catch (err) {
+        unstable_rethrow(err);
         setMsg({ ok: false, text: err instanceof Error ? err.message : "Failed to add user" });
         toast(err instanceof Error ? err.message : "Failed to add user", "error");
       }

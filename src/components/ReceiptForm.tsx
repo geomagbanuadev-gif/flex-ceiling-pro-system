@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { saveQuote, type QuotePayload } from "@/app/quotes/actions";
 
 type Client = {
@@ -109,6 +110,7 @@ export function ReceiptForm({
       try {
         await saveQuote(payload);
       } catch (e) {
+        unstable_rethrow(e);
         setError(e instanceof Error ? e.message : "Failed to save");
       }
     });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { saveSupplier, type SupplierPayload } from "@/app/suppliers/actions";
 
 type Supplier = Partial<SupplierPayload> & { id?: string };
@@ -24,7 +25,7 @@ export function SupplierForm({ supplier }: { supplier?: Supplier }) {
     const payload: SupplierPayload = { id: supplier?.id, name, trn, email, contact_person: contactPerson, contact_phone: contactPhone, address, default_payment_terms: terms, notes };
     start(async () => {
       try { await saveSupplier(payload); }
-      catch (e) { setError(e instanceof Error ? e.message : "Failed to save"); }
+      catch (e) { unstable_rethrow(e); setError(e instanceof Error ? e.message : "Failed to save"); }
     });
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { saveSettings, type SettingsPayload } from "@/app/settings/actions";
 import { useToast } from "./Toast";
 
@@ -40,6 +41,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
         setMsg({ ok: true, text: "Settings saved." });
         toast("Settings saved");
       } catch (err) {
+        unstable_rethrow(err);
         setMsg({ ok: false, text: err instanceof Error ? err.message : "Failed to save" });
         toast(err instanceof Error ? err.message : "Failed to save", "error");
       }

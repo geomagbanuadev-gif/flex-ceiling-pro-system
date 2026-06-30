@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { savePurchaseOrder, type PoPayload } from "@/app/purchase-orders/actions";
 import { computeTotals } from "@/utils/totals";
 
@@ -81,7 +82,7 @@ export function PurchaseOrderForm({ suppliers, nextNumber, defaults, initial }: 
     };
     start(async () => {
       try { await savePurchaseOrder(payload); }
-      catch (e) { setError(e instanceof Error ? e.message : "Failed to save"); }
+      catch (e) { unstable_rethrow(e); setError(e instanceof Error ? e.message : "Failed to save"); }
     });
   }
 

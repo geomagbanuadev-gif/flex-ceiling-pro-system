@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, unstable_rethrow } from "next/navigation";
 import { setUserRole, setUserActive } from "@/app/users/actions";
 import { Spinner } from "./Spinner";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -31,6 +31,7 @@ export function UserControls({ id, role, active }: { id: string; role: string; a
         onDone?.();
         router.refresh();
       } catch (e) {
+        unstable_rethrow(e);
         const m = e instanceof Error ? e.message : "Failed";
         setError(m);
         toast(m, "error");

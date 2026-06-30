@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { saveQuote, type QuotePayload } from "@/app/quotes/actions";
 import { computeTotals } from "@/utils/totals";
 
@@ -161,6 +162,7 @@ export function QuoteForm({
       try {
         await saveQuote(payload);
       } catch (e) {
+        unstable_rethrow(e);
         setError(e instanceof Error ? e.message : "Failed to save");
       }
     });

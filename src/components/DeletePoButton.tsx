@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { deletePurchaseOrder } from "@/app/purchase-orders/actions";
 import { ConfirmDialog } from "./ConfirmDialog";
 
@@ -13,7 +14,7 @@ export function DeletePoButton({ id, label }: { id: string; label: string }) {
     setError("");
     start(async () => {
       try { await deletePurchaseOrder(id); }
-      catch (e) { setError(e instanceof Error ? e.message : "Failed to delete"); }
+      catch (e) { unstable_rethrow(e); setError(e instanceof Error ? e.message : "Failed to delete"); }
     });
   }
 

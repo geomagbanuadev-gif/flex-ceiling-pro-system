@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { deleteSupplier } from "@/app/suppliers/actions";
 import { ConfirmDialog } from "./ConfirmDialog";
 
@@ -13,7 +14,7 @@ export function DeleteSupplierButton({ id, name }: { id: string; name: string })
     setError("");
     start(async () => {
       try { await deleteSupplier(id); }
-      catch (e) { setError(e instanceof Error ? e.message : "Failed to delete"); }
+      catch (e) { unstable_rethrow(e); setError(e instanceof Error ? e.message : "Failed to delete"); }
     });
   }
 

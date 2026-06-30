@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, unstable_rethrow } from "next/navigation";
 import { updatePoStatus } from "@/app/purchase-orders/actions";
 import { Spinner } from "./Spinner";
 import { useToast } from "./Toast";
@@ -25,7 +25,7 @@ export function PoStatusControl({ poId, current }: { poId: string; current: stri
     if (!status || status === cur) return;
     start(async () => {
       try { await updatePoStatus(poId, status); toast(`Marked as ${PO_STATUS_LABEL[status] ?? status}`); router.refresh(); }
-      catch (e) { toast(e instanceof Error ? e.message : "Failed to update status", "error"); }
+      catch (e) { unstable_rethrow(e); toast(e instanceof Error ? e.message : "Failed to update status", "error"); }
     });
   }
 

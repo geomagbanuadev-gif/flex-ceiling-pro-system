@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { deleteDocument } from "@/app/quotes/actions";
 import { ConfirmDialog } from "./ConfirmDialog";
 
@@ -15,6 +16,7 @@ export function DeleteButton({ docId, label }: { docId: string; label: string })
       try {
         await deleteDocument(docId);
       } catch (e) {
+        unstable_rethrow(e);
         setError(e instanceof Error ? e.message : "Failed to delete");
       }
     });

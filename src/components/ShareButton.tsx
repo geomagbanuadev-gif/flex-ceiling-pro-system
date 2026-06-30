@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, unstable_rethrow } from "next/navigation";
 import { getShareToken, disableShare } from "@/app/quotes/actions";
 import { Spinner } from "./Spinner";
 import { useToast } from "./Toast";
@@ -26,6 +26,7 @@ export function ShareButton({ docId, docType, initialToken }: { docId: string; d
         try {
           setToken(await getShareToken(docId));
         } catch (e) {
+          unstable_rethrow(e);
           setError(e instanceof Error ? e.message : "Could not create link");
         }
       });
@@ -46,6 +47,7 @@ export function ShareButton({ docId, docType, initialToken }: { docId: string; d
         toast("Sharing turned off");
         router.refresh();
       } catch (e) {
+        unstable_rethrow(e);
         setError(e instanceof Error ? e.message : "Failed");
       }
     });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, unstable_rethrow } from "next/navigation";
 import { addPurchasePayment, deletePurchasePayment } from "@/app/purchase-orders/actions";
 import { useToast } from "./Toast";
 import { balanceOwed, paymentStatus } from "@/utils/procurement";
@@ -31,13 +31,13 @@ export function PaymentLog({ poId, payments, grandTotal }: { poId: string; payme
       try {
         await addPurchasePayment(poId, { date, method, reference, amount: parseFloat(amount), notes });
         setAmount(""); setReference(""); setNotes(""); setOpen(false); toast("Payment recorded"); router.refresh();
-      } catch (e) { toast(e instanceof Error ? e.message : "Failed", "error"); }
+      } catch (e) { unstable_rethrow(e); toast(e instanceof Error ? e.message : "Failed", "error"); }
     });
   }
   function remove(id: string) {
     start(async () => {
       try { await deletePurchasePayment(id, poId); toast("Payment removed"); router.refresh(); }
-      catch (e) { toast(e instanceof Error ? e.message : "Failed", "error"); }
+      catch (e) { unstable_rethrow(e); toast(e instanceof Error ? e.message : "Failed", "error"); }
     });
   }
 
