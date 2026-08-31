@@ -57,6 +57,11 @@ const s = StyleSheet.create({
   termsTxt: { fontSize: 8, color: "#333" },
   note: { marginTop: 10, fontSize: 9, color: "#c0392b", fontFamily: "Helvetica-Bold" },
 
+  tcBox: { marginTop: 14, borderTopWidth: 1, borderTopColor: BORDER, paddingTop: 8 },
+  tcRow: { flexDirection: "row", marginBottom: 2 },
+  tcNum: { width: 14, fontSize: 7.5, color: MUTED },
+  tcTxt: { flex: 1, fontSize: 7.5, color: "#333" },
+
   sign: { flexDirection: "row", justifyContent: "space-between", marginTop: 18, paddingTop: 6, borderTopWidth: 1, borderTopColor: BORDER, fontSize: 8 },
 
   bank: { marginTop: 16, flexDirection: "row", alignItems: "flex-end" },
@@ -67,6 +72,15 @@ const s = StyleSheet.create({
   stampBox: { width: "30%", alignItems: "flex-end", paddingRight: 4 },
   stamp: { width: 82, height: 84 },
 });
+
+const TERMS = [
+  "Electricity for the work provided by the client.",
+  "Work site should be clear and access provided by the client.",
+  "Storage space for the materials to keep in safe for the work by the client.",
+  "If any additional works are added by the client beyond this quotation, we are entitled to a time extension according to the volume of work.",
+  "Any change or requirement from the client beyond this quotation will be charged extra as a variation, executed only upon approval of a new quotation.",
+  "Work will be performed in accordance with our design, in time and with high quality.",
+];
 
 const money = (v: number | null | undefined) =>
   v == null ? "" : "AED " + Number(v).toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -197,6 +211,19 @@ export function QuoteDocument({ doc, items, settings, logoSrc, stampSrc }: { doc
           </View>
         </View>
 
+        {/* General terms & conditions */}
+        <View style={s.tcBox}>
+          <Text style={s.termsHead}>Terms &amp; Conditions</Text>
+          {TERMS.map((t, i) => (
+            <View style={s.tcRow} key={i}>
+              <Text style={s.tcNum}>{i + 1}.</Text>
+              <Text style={s.tcTxt}>{t}</Text>
+            </View>
+          ))}
+        </View>
+        </View>
+
+        <View wrap={false}>
         <View style={s.sign}>
           <Text>{settings.legal_name}</Text>
           <Text style={{ color: MUTED }}>Submitted By</Text>
