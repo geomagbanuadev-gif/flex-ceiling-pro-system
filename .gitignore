@@ -51,3 +51,6 @@ docs/*.mp4
 
 # working feature specs (planning docs, kept local)
 docs/*_SPEC.md
+
+# claude code local overrides
+.claude/settings.local.json
