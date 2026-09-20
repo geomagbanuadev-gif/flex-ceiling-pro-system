@@ -149,9 +149,14 @@ the totals, and a live **PDF preview** on the right.
 
 | Document | Available statuses |
 |---|---|
-| Quotation | Draft · Sent · **Won** · Lost |
-| Pro Forma | Draft · Sent · **Paid** · Lost |
+| Quotation | Draft · Sent · **Won** · **Ongoing** · Lost |
+| Pro Forma | Draft · Sent · **Ongoing** · **Paid** · Lost |
 | Tax Invoice | Draft · Sent · **Paid** · Lost |
+
+A quotation or pro forma is **Ongoing** when the accepted job is underway. This is
+separate from **Paid**, which records payment; changing a document to Ongoing does not
+mark an invoice as paid. Ongoing quotations still count as accepted in the Dashboard's
+quote conversion figure. Receipts use Draft · Issued instead.
 
 A quotation also shows a **validity badge** (valid until / expired) based on its date and
 validity days.
@@ -202,7 +207,7 @@ approved quote:
 1. Open the **quotation** the client approved.
 2. Click **Generate Tax Invoice**.
 3. The system copies the client and line items, gives it a new invoice number, adds the
-   **amount in words**, and marks the original quote as **Won**.
+   **amount in words**, and marks the original quote as **Won** unless it is already **Ongoing**.
 
 You can also create a blank invoice: **Invoices → + Tax Invoice**.
 
@@ -409,7 +414,8 @@ Refresh the page in your browser. If it persists, contact your system administra
 - **VAT:** Value Added Tax (5% in the UAE).
 - **Advance Payment:** the partial amount requested up front on a pro forma.
 - **Balance Due:** the remaining amount after the advance (Grand Total − Advance).
-- **Status:** where a document stands (Draft, Sent, Won, Lost, Paid).
+- **Status:** where a document stands (Draft, Sent, Won, Ongoing, Lost, Paid or Issued,
+  depending on the document type).
 - **Super user:** an administrator who can manage users and company settings.
 
 ---

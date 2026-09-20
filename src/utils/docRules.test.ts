@@ -1,14 +1,19 @@
 import { describe, it, expect } from "vitest";
-import { statusesFor, prefixFor, wordsForType, advanceForType, defaultAdvance, paymentAcknowledgment } from "./docRules";
+import { statusesFor, quoteStatusAfterInvoiceConversion, prefixFor, wordsForType, advanceForType, defaultAdvance, paymentAcknowledgment } from "./docRules";
 
 describe("statusesFor", () => {
-  it("quotes use won/lost; billing docs use paid; receipts use issued", () => {
-    expect(statusesFor("quote")).toContain("won");
-    expect(statusesFor("quote")).not.toContain("paid");
-    expect(statusesFor("invoice")).toContain("paid");
-    expect(statusesFor("proforma")).toContain("paid");
-    expect(statusesFor("proforma")).not.toContain("won");
+  it("allows ongoing only for quotes and pro formas", () => {
+    expect(statusesFor("quote")).toEqual(["draft", "sent", "won", "ongoing", "lost"]);
+    expect(statusesFor("proforma")).toEqual(["draft", "sent", "ongoing", "paid", "lost"]);
+    expect(statusesFor("invoice")).toEqual(["draft", "sent", "paid", "lost"]);
     expect(statusesFor("receipt")).toEqual(["draft", "issued"]);
+  });
+});
+
+describe("quoteStatusAfterInvoiceConversion", () => {
+  it("preserves work already ongoing and otherwise marks the quote won", () => {
+    expect(quoteStatusAfterInvoiceConversion("ongoing")).toBe("ongoing");
+    expect(quoteStatusAfterInvoiceConversion("sent")).toBe("won");
   });
 });
 

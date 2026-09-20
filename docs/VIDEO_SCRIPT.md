@@ -48,7 +48,7 @@ do the actions in order. Each scene lists **what to show**, **where to click**, 
 ### Scene 5 — The document page (≈45s)
 - **Show:** the saved quote page with the **PDF preview** on the right.
 - **Say:** "Here's the saved quotation, with a live preview of the finished PDF on the
-  right. Up top I can change the status — Draft, Sent, Won or Lost — edit it, print it, or
+  right. Up top I can change the status — Draft, Sent, Won, Ongoing or Lost — edit it, print it, or
   share it."
 - **Click:** **Open / Print PDF** → show the branded PDF → close the tab.
 - **Say:** "Open / Print PDF gives me the clean branded document, ready to print or save."
@@ -67,7 +67,7 @@ do the actions in order. Each scene lists **what to show**, **where to click**, 
 - **Click:** open the quotation again → **Generate Tax Invoice**.
 - **Say:** "When the client approves, I open the quote and click Generate Tax Invoice. It
   creates the official VAT invoice with a new number and the amount in words, and marks the
-  quote as Won."
+  quote as Won, unless its work is already Ongoing."
 - **Show:** the invoice PDF preview (TRNs, totals, bank details, stamp).
 
 ### Scene 8 — Share with a client (≈45s)

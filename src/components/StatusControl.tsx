@@ -3,19 +3,15 @@
 import { useTransition } from "react";
 import { useRouter, unstable_rethrow } from "next/navigation";
 import { updateStatus } from "@/app/quotes/actions";
+import { statusesFor } from "@/utils/docRules";
 import { Spinner } from "./Spinner";
 import { useToast } from "./Toast";
 
-const STATUSES: Record<string, string[]> = {
-  quote: ["draft", "sent", "won", "lost"],
-  invoice: ["draft", "sent", "paid", "lost"],
-  proforma: ["draft", "sent", "paid", "lost"],
-  receipt: ["draft", "issued"],
-};
 const COLORS: Record<string, string> = {
   draft: "bg-slate-100 text-slate-600",
   sent: "bg-blue-100 text-blue-700",
   won: "bg-green-100 text-green-700",
+  ongoing: "bg-violet-100 text-violet-700",
   paid: "bg-green-100 text-green-700",
   issued: "bg-green-100 text-green-700",
   lost: "bg-red-100 text-red-700",
@@ -26,7 +22,7 @@ export function StatusControl({ docId, type, current }: { docId: string; type: "
   const [pending, start] = useTransition();
   const router = useRouter();
   const toast = useToast();
-  const options = STATUSES[type] ?? STATUSES.quote;
+  const options = statusesFor(type);
   const cur = current ?? "draft";
 
   function change(status: string) {

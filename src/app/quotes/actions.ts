@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { amountInWords } from "@/utils/amountInWords";
 import { nextDocNumber } from "@/utils/docNumber";
-import { statusesFor, prefixFor, wordsForType, advanceForType, defaultAdvance, type DocType } from "@/utils/docRules";
+import { statusesFor, quoteStatusAfterInvoiceConversion, prefixFor, wordsForType, advanceForType, defaultAdvance, type DocType } from "@/utils/docRules";
 import { getProfile, canSeeInvoices, canSeeReceipts } from "@/utils/profile";
 
 /** Next sequential document number for a type, e.g. "PF-0007". */
@@ -249,9 +249,9 @@ export async function convertToInvoice(quoteId: string) {
     );
   }
 
-  // mark the source quote as won/converted (pro forma sources keep their own status)
+  // An ongoing quote stays ongoing; other quote statuses become won on conversion.
   if (quote.type === "quote") {
-    await supabase.from("documents").update({ status: "won" }).eq("id", quoteId);
+    await supabase.from("documents").update({ status: quoteStatusAfterInvoiceConversion(quote.status) }).eq("id", quoteId);
   }
 
   redirect(`/quotes/${inv.id}?flash=converted`);
@@ -311,6 +311,7 @@ export async function updateStatus(docId: string, status: string) {
   if (error) throw new Error(error.message);
   revalidatePath(`/quotes/${docId}`);
   revalidatePath("/quotes");
+  revalidatePath("/");
 }
 
 /** Copy a quote/invoice into a new draft (fresh number) and open it for editing. */

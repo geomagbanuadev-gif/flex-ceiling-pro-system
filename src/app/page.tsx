@@ -5,6 +5,7 @@ import { StatCard } from "@/components/StatCard";
 import { TypeChip } from "@/components/TypeChip";
 import { LinkRow } from "@/components/LinkRow";
 import { fmtDate } from "@/utils/format";
+import { statusesFor } from "@/utils/docRules";
 
 const money = (v: number | null) => "AED " + Number(v ?? 0).toLocaleString("en-AE", { maximumFractionDigits: 0 });
 const kAed = (v: number) => (v >= 1000 ? (v / 1000).toFixed(v >= 10000 ? 0 : 1) + "k" : String(Math.round(v)));
@@ -20,6 +21,7 @@ const STATUS_COLORS: Record<string, string> = {
   draft: "bg-slate-400",
   sent: "bg-blue-500",
   won: "bg-green-500",
+  ongoing: "bg-violet-500",
   paid: "bg-green-500",
   lost: "bg-red-400",
   imported: "bg-amber-400",
@@ -51,8 +53,8 @@ export default async function DashboardPage() {
   const invoicedTotal = sum(invoices);
   const outstanding = sum(invoices.filter((d) => d.status !== "paid"));
   const thisMonth = sum(invoices.filter((d) => (d.doc_date ?? "") >= monthStart));
-  const wonCount = quotes.filter((d) => d.status === "won").length;
-  const conversion = quotes.length ? Math.round((wonCount / quotes.length) * 100) : 0;
+  const acceptedCount = quotes.filter((d) => d.status === "won" || d.status === "ongoing").length;
+  const conversion = quotes.length ? Math.round((acceptedCount / quotes.length) * 100) : 0;
 
   // last 6 months invoiced
   const months: { key: string; label: string }[] = [];
@@ -67,7 +69,7 @@ export default async function DashboardPage() {
   const pipeline: Record<string, number> = {};
   for (const q of quotes) pipeline[q.status ?? "draft"] = (pipeline[q.status ?? "draft"] || 0) + 1;
   const pipelineMax = Math.max(1, ...Object.values(pipeline));
-  const pipelineOrder = ["draft", "sent", "won", "lost", "imported"].filter((s) => pipeline[s]);
+  const pipelineOrder = [...statusesFor("quote"), "imported"].filter((s) => pipeline[s]);
 
   // top clients by total business value
   const byClient: Record<string, number> = {};
@@ -82,7 +84,7 @@ export default async function DashboardPage() {
     { label: "Outstanding", value: money(outstanding), tint: "bg-gold/10 text-gold", icon: I.wallet, sub: `${invoices.filter((d) => d.status !== "paid").length} unpaid invoices` },
     { label: "Invoiced (all time)", value: money(invoicedTotal), tint: "bg-navy/10 text-navy", icon: I.doc, sub: `${invoices.length} tax invoices` },
     { label: `Invoiced in ${monthName}`, value: money(thisMonth), tint: "bg-emerald-500/10 text-emerald-600", icon: I.calendar, sub: "current month" },
-    { label: "Quote conversion", value: `${conversion}%`, tint: "bg-blue-500/10 text-blue-600", icon: I.trend, sub: `${wonCount} of ${quotes.length} won` },
+    { label: "Quote conversion", value: `${conversion}%`, tint: "bg-blue-500/10 text-blue-600", icon: I.trend, sub: `${acceptedCount} of ${quotes.length} won or ongoing` },
   ];
 
   const card = "min-w-0 rounded-2xl bg-white p-5 shadow-[var(--shadow-card)] ring-1 ring-slate-200";

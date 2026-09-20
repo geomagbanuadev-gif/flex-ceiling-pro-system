@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { statusesFor } from "@/utils/docRules";
 import { Spinner } from "./Spinner";
 
-const STATUSES = ["draft", "sent", "won", "lost", "paid", "issued", "imported"];
+const STATUSES = [...new Set(["quote", "proforma", "invoice", "receipt"].flatMap(statusesFor)), "imported"];
 const SORTS = [
   { v: "doc_date", l: "Date" },
   { v: "number", l: "Number" },
@@ -18,13 +19,9 @@ export function DocumentsFilters({ clients = [], lockedType }: { clients?: { id:
   const [pending, start] = useTransition();
 
   const basePath = lockedType ? `/quotes?type=${lockedType}` : "/quotes";
-  const statusOptions = lockedType === "invoice" || lockedType === "proforma"
-    ? ["draft", "sent", "paid", "lost"]
-    : lockedType === "receipt"
-      ? ["draft", "issued"]
-      : lockedType === "quote"
-        ? ["draft", "sent", "won", "lost", "imported"]
-        : STATUSES;
+  const statusOptions = lockedType === "quote"
+    ? [...statusesFor("quote"), "imported"]
+    : lockedType ? statusesFor(lockedType) : STATUSES;
   const init = (k: string, d = "") => sp.get(k) ?? d;
   const [q, setQ] = useState(init("q"));
   const [type, setType] = useState(init("type"));
