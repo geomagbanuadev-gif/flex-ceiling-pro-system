@@ -1,12 +1,29 @@
 import { describe, it, expect } from "vitest";
-import { statusesFor, quoteStatusAfterInvoiceConversion, prefixFor, wordsForType, advanceForType, defaultAdvance, paymentAcknowledgment } from "./docRules";
+import { statusesFor, quoteStatusAfterInvoiceConversion, prefixFor, wordsForType, advanceForType, defaultAdvance, paymentAcknowledgment, invoiceAmountsForSource, dependentDocumentDeleteError, canRegenerateGeneratedDocument, regenerationBlockedMessage, allowedStatusTransitions } from "./docRules";
 
 describe("statusesFor", () => {
   it("allows ongoing only for quotes and pro formas", () => {
     expect(statusesFor("quote")).toEqual(["draft", "sent", "won", "ongoing", "lost"]);
     expect(statusesFor("proforma")).toEqual(["draft", "sent", "ongoing", "paid", "lost"]);
     expect(statusesFor("invoice")).toEqual(["draft", "sent", "paid", "lost"]);
-    expect(statusesFor("receipt")).toEqual(["draft", "issued"]);
+    expect(statusesFor("receipt")).toEqual(["draft", "issued", "void"]);
+  });
+});
+
+describe("generated document safety", () => {
+  it("allows regeneration only while the generated record is draft", () => {
+    expect(canRegenerateGeneratedDocument("draft")).toBe(true);
+    expect(canRegenerateGeneratedDocument("sent")).toBe(false);
+    expect(canRegenerateGeneratedDocument("paid")).toBe(false);
+    expect(canRegenerateGeneratedDocument("issued")).toBe(false);
+    expect(regenerationBlockedMessage("receipt", "issued")).toContain("Only a draft receipt");
+  });
+
+  it("does not let finalized billing records return to draft", () => {
+    expect(allowedStatusTransitions("invoice", "sent")).not.toContain("draft");
+    expect(allowedStatusTransitions("invoice", "paid")).toEqual(["paid"]);
+    expect(allowedStatusTransitions("receipt", "issued")).toEqual(["issued", "void"]);
+    expect(allowedStatusTransitions("receipt", "void")).toEqual(["void"]);
   });
 });
 
@@ -69,5 +86,57 @@ describe("defaultAdvance", () => {
     expect(defaultAdvance(8846.5)).toBe(4423.25);
     expect(defaultAdvance(0)).toBe(0);
     expect(defaultAdvance(null)).toBe(0);
+  });
+});
+
+describe("invoiceAmountsForSource", () => {
+  it("converts a pro forma advance into a VAT-inclusive partial tax invoice", () => {
+    expect(invoiceAmountsForSource({
+      type: "proforma",
+      subtotal: 27145,
+      discount: 0,
+      vat_rate: 5,
+      vat_amount: 1357.25,
+      grand_total: 28502.25,
+      advance_amount: 14251.13,
+    })).toEqual({
+      partial: true,
+      subtotal: 13572.5,
+      discount: 0,
+      vatRate: 5,
+      vatAmount: 678.63,
+      grandTotal: 14251.13,
+    });
+  });
+
+  it("keeps quotation totals unchanged", () => {
+    expect(invoiceAmountsForSource({
+      type: "quote",
+      subtotal: 1000,
+      discount: 50,
+      vat_rate: 5,
+      vat_amount: 47.5,
+      grand_total: 997.5,
+      advance_amount: null,
+    })).toEqual({
+      partial: false,
+      subtotal: 1000,
+      discount: 50,
+      vatRate: 5,
+      vatAmount: 47.5,
+      grandTotal: 997.5,
+    });
+  });
+});
+
+describe("dependentDocumentDeleteError", () => {
+  it("explains which generated document must be removed first", () => {
+    expect(dependentDocumentDeleteError([
+      { type: "receipt", number: "RCPT-0125" },
+    ])).toBe("Delete the linked Receipt RCPT-0125 first.");
+  });
+
+  it("allows deletion when there are no generated records", () => {
+    expect(dependentDocumentDeleteError([])).toBeNull();
   });
 });

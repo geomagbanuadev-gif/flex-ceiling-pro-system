@@ -10,6 +10,7 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { StatusControl } from "@/components/StatusControl";
 import { ShareButton } from "@/components/ShareButton";
 import { fmtDate } from "@/utils/format";
+import { outstandingBalance } from "@/utils/finance";
 
 const money = (v: number | null) =>
   v == null ? "—" : "AED " + Number(v).toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -20,8 +21,20 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
   const { data: doc } = await supabase.from("documents").select("*").eq("id", id).single();
   if (!doc) notFound();
   const { data: items } = await supabase.from("document_items").select("*").eq("document_id", id).order("sort_order");
+  const [{ data: project }, { data: appliedInvoice }, { data: allocatedReceipts }, { data: sourceDocument }, { data: generatedDocuments }] = await Promise.all([
+    doc.project_id ? supabase.from("projects").select("id, name, code").eq("id", doc.project_id).maybeSingle() : Promise.resolve({ data: null }),
+    doc.type === "receipt" && doc.applies_to_invoice_id ? supabase.from("documents").select("id, number").eq("id", doc.applies_to_invoice_id).maybeSingle() : Promise.resolve({ data: null }),
+    doc.type === "invoice" ? supabase.from("documents").select("grand_total").eq("type", "receipt").eq("status", "issued").eq("applies_to_invoice_id", id) : Promise.resolve({ data: [] }),
+    doc.converted_from ? supabase.from("documents").select("id, number, type").eq("id", doc.converted_from).maybeSingle() : Promise.resolve({ data: null }),
+    supabase.from("documents").select("id, number, type, status").eq("converted_from", id).order("created_at", { ascending: false }),
+  ]);
+  const received = (allocatedReceipts ?? []).reduce((sum, receipt) => sum + (Number(receipt.grand_total) || 0), 0);
+  const invoiceBalance = outstandingBalance(doc.grand_total, received);
   const docWord = doc.type === "invoice" ? "Tax Invoice" : doc.type === "proforma" ? "Pro Forma" : doc.type === "receipt" ? "Receipt" : "Quotation";
   const typeKey: "quote" | "invoice" | "proforma" | "receipt" = doc.type === "invoice" ? "invoice" : doc.type === "proforma" ? "proforma" : doc.type === "receipt" ? "receipt" : "quote";
+  const generatedProforma = generatedDocuments?.find((generated) => generated.type === "proforma");
+  const generatedInvoice = generatedDocuments?.find((generated) => generated.type === "invoice");
+  const generatedReceipt = generatedDocuments?.find((generated) => generated.type === "receipt");
 
   // audit trail — resolve creator/updater to emails
   const auditIds = [doc.created_by, doc.updated_by].filter(Boolean);
@@ -46,14 +59,14 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
       action={
         <div className="flex gap-2">
           <Link href={`/quotes?type=${typeKey}`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-slate-50">← Back</Link>
-          <Link href={`/quotes/${id}/edit`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-slate-50">Edit</Link>
+          {(doc.type === "quote" || doc.status === "draft") && <Link href={`/quotes/${id}/edit`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-slate-50">Edit</Link>}
           <a href={`/quotes/${id}/pdf`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-xl bg-navy px-4 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-glow)] transition hover:-translate-y-0.5 hover:bg-navy-700"><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>Open / Print PDF</a>
         </div>
       }
     >
       {/* Status + lifecycle actions */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white ring-1 ring-slate-200 px-4 py-3 shadow-[var(--shadow-card)]">
-        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+      <div className="mb-5 overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200 shadow-[var(--shadow-card)]">
+        <div className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm text-slate-500">
           <span className="font-medium">Status</span>
           <StatusControl docId={id} type={typeKey} current={doc.status} />
           {expiry && (
@@ -62,11 +75,11 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
             </span>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 bg-slate-50/60 px-4 py-3">
           <ShareButton docId={id} docType={doc.type} initialToken={doc.share_token ?? null} />
-          {typeKey === "quote" && <ProformaButton sourceId={id} />}
-          {(typeKey === "quote" || typeKey === "proforma") && <ConvertButton quoteId={id} />}
-          {(typeKey === "invoice" || typeKey === "proforma") && <ReceiptButton sourceId={id} />}
+          {typeKey === "quote" && <ProformaButton sourceId={id} existingId={generatedProforma?.id} existingStatus={generatedProforma?.status} />}
+          {(typeKey === "quote" || typeKey === "proforma") && <ConvertButton quoteId={id} sourceType={typeKey} existingId={generatedInvoice?.id} existingStatus={generatedInvoice?.status} />}
+          {(typeKey === "invoice" || typeKey === "proforma") && <ReceiptButton sourceId={id} existingId={generatedReceipt?.id} existingStatus={generatedReceipt?.status} />}
           <DuplicateButton docId={id} />
           <DeleteButton docId={id} label={`${docWord} ${doc.number}`} />
         </div>
@@ -82,9 +95,13 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
             {doc.contact_person && <p className="text-slate-600">{doc.contact_person}{doc.contact_phone ? ` · ${doc.contact_phone}` : ""}</p>}
             {doc.client_address && <p className="text-slate-600">{doc.client_address}</p>}
             {doc.reference && <p className="mt-2 text-slate-500">{doc.reference}</p>}
+            {project && <p className="mt-2">Project: <Link href={`/projects/${project.id}`} className="font-medium text-navy">{project.code ? `${project.code} — ` : ""}{project.name}</Link></p>}
+            {doc.type === "invoice" && <p className="mt-1 text-slate-500">Payment due: {doc.due_date ? fmtDate(doc.due_date) : "Due date not set"}</p>}
+            {appliedInvoice && <p className="mt-1">Applied to <Link href={`/quotes/${appliedInvoice.id}`} className="font-medium text-navy">{appliedInvoice.number}</Link></p>}
             {doc.converted_from && (doc.type === "invoice" || doc.type === "proforma" || doc.type === "receipt") && (
-              <p className="mt-2 text-xs text-slate-500">Generated from <Link href={`/quotes/${doc.converted_from}`} className="text-navy-600 hover:underline">#{doc.converted_from.slice(0, 8)}</Link></p>
+              <p className="mt-2 text-xs text-slate-500">Generated from <Link href={`/quotes/${doc.converted_from}`} className="font-medium text-navy-600 hover:underline">{sourceDocument?.number ?? `#${doc.converted_from.slice(0, 8)}`}</Link></p>
             )}
+            {!!generatedDocuments?.length && <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-slate-500"><span>Generated:</span>{generatedDocuments.map((generated) => <Link key={generated.id} href={`/quotes/${generated.id}`} className="rounded-full bg-slate-100 px-2 py-1 font-medium text-navy-600 hover:bg-slate-200">{generated.number} · {generated.status}</Link>)}</div>}
           </div>
 
           <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-slate-200 shadow-[var(--shadow-card)]">
@@ -120,6 +137,7 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
                   {doc.discount ? <div className="flex justify-between"><span className="text-slate-500">Discount</span><span>- {money(doc.discount)}</span></div> : null}
                   <div className="flex justify-between"><span className="text-slate-500">VAT {doc.vat_rate ?? 5}%</span><span>{money(doc.vat_amount)}</span></div>
                   <div className="flex justify-between border-t border-slate-200 pt-1.5 text-base font-semibold text-slate-900"><span>Grand Total</span><span>{money(doc.grand_total)}</span></div>
+                  {doc.type === "invoice" && <div className="mt-1.5 space-y-1 border-t border-slate-200 pt-1.5"><div className="flex justify-between"><span className="text-slate-500">Issued receipts</span><span>{money(received)}</span></div><div className="flex justify-between font-semibold"><span>Receivable balance</span><span className={invoiceBalance > 0 ? "text-red-600" : "text-green-700"}>{money(invoiceBalance)}</span></div></div>}
                   {doc.type === "proforma" && (
                     <div className="mt-1.5 space-y-1 border-t border-slate-200 pt-1.5">
                       <div className="flex justify-between"><span className="text-slate-500">Advance Payment</span><span>{money(doc.advance_amount)}</span></div>

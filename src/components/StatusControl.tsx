@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { useRouter, unstable_rethrow } from "next/navigation";
 import { updateStatus } from "@/app/quotes/actions";
-import { statusesFor } from "@/utils/docRules";
+import { allowedStatusTransitions } from "@/utils/docRules";
 import { Spinner } from "./Spinner";
 import { useToast } from "./Toast";
 
@@ -22,8 +22,8 @@ export function StatusControl({ docId, type, current }: { docId: string; type: "
   const [pending, start] = useTransition();
   const router = useRouter();
   const toast = useToast();
-  const options = statusesFor(type);
   const cur = current ?? "draft";
+  const options = allowedStatusTransitions(type, cur);
 
   function change(status: string) {
     if (!status || status === cur) return;

@@ -10,6 +10,7 @@ const MESSAGES: Record<string, string> = {
   converted: "Tax invoice created",
   proforma: "Pro forma created — set the advance",
   receipt: "Receipt created — confirm the payment details",
+  regenerated: "Generated document updated with today’s date",
   duplicated: "Duplicated — ready to edit",
   "client-saved": "Client saved",
   "supplier-saved": "Supplier saved",

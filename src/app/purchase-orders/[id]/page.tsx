@@ -21,6 +21,7 @@ export default async function PoDetailPage(props: PageProps<"/purchase-orders/[i
     supabase.from("purchase_order_items").select("*").eq("purchase_order_id", id).order("sort_order"),
     supabase.from("purchase_payments").select("*").eq("purchase_order_id", id).order("payment_date", { ascending: false }),
   ]);
+  const { data: project } = po.project_id ? await supabase.from("projects").select("id, name, code").eq("id", po.project_id).maybeSingle() : { data: null };
 
   const auditIds = [po.created_by, po.updated_by].filter(Boolean);
   const { data: profs } = auditIds.length ? await supabase.from("profiles").select("id, email").in("id", auditIds) : { data: [] as { id: string; email: string }[] };
@@ -57,6 +58,8 @@ export default async function PoDetailPage(props: PageProps<"/purchase-orders/[i
             {po.contact_person && <p className="text-slate-600">{po.contact_person}{po.contact_phone ? ` · ${po.contact_phone}` : ""}</p>}
             {po.supplier_address && <p className="text-slate-600">{po.supplier_address}</p>}
             {po.reference && <p className="mt-2 text-slate-500">{po.reference}</p>}
+            {project && <p className="mt-2">Project: <Link href={`/projects/${project.id}`} className="font-medium text-navy">{project.code ? `${project.code} — ` : ""}{project.name}</Link></p>}
+            <p className="mt-1 text-slate-500">Payment due: {po.due_date ? fmtDate(po.due_date) : "Due date not set"}</p>
           </div>
 
           <div className="overflow-x-auto rounded-2xl bg-white shadow-[var(--shadow-card)] ring-1 ring-slate-200">

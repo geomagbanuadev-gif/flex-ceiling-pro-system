@@ -6,6 +6,7 @@ import { TypeChip } from "@/components/TypeChip";
 import { LinkRow } from "@/components/LinkRow";
 import { fmtDate } from "@/utils/format";
 import { statusesFor } from "@/utils/docRules";
+import { outstandingBalance, receivedForInvoice } from "@/utils/finance";
 
 const money = (v: number | null) => "AED " + Number(v ?? 0).toLocaleString("en-AE", { maximumFractionDigits: 0 });
 const kAed = (v: number) => (v >= 1000 ? (v / 1000).toFixed(v >= 10000 ? 0 : 1) + "k" : String(Math.round(v)));
@@ -32,7 +33,7 @@ export default async function DashboardPage() {
 
   const [clientsRes, allRes, recentRes] = await Promise.all([
     supabase.from("clients").select("*", { count: "exact", head: true }),
-    supabase.from("documents").select("type, status, grand_total, doc_date, client_name"),
+    supabase.from("documents").select("*"),
     supabase
       .from("documents")
       .select("id, number, type, doc_date, client_name, grand_total, status")
@@ -42,6 +43,8 @@ export default async function DashboardPage() {
 
   const all = allRes.data ?? [];
   const invoices = all.filter((d) => d.type === "invoice");
+  const issuedInvoices = invoices.filter((d) => d.status === "sent" || d.status === "paid");
+  const issuedReceipts = all.filter((d) => d.type === "receipt" && d.status === "issued");
   const quotes = all.filter((d) => d.type === "quote");
   const proformas = all.filter((d) => d.type === "proforma");
   const sum = (arr: typeof all) => arr.reduce((s, d) => s + (Number(d.grand_total) || 0), 0);
@@ -50,9 +53,14 @@ export default async function DashboardPage() {
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
   const monthName = now.toLocaleString("en-US", { month: "long" });
 
-  const invoicedTotal = sum(invoices);
-  const outstanding = sum(invoices.filter((d) => d.status !== "paid"));
-  const thisMonth = sum(invoices.filter((d) => (d.doc_date ?? "") >= monthStart));
+  const invoicedTotal = sum(issuedInvoices);
+  const invoiceBalance = (invoice: (typeof invoices)[number]) => {
+    const received = receivedForInvoice(invoice.id, issuedReceipts);
+    return invoice.status === "paid" && received === 0 ? 0 : outstandingBalance(invoice.grand_total, received);
+  };
+  const outstandingRows = issuedInvoices.filter((invoice) => invoiceBalance(invoice) > 0);
+  const outstanding = outstandingRows.reduce((total, invoice) => total + invoiceBalance(invoice), 0);
+  const thisMonth = sum(issuedInvoices.filter((d) => (d.doc_date ?? "") >= monthStart));
   const acceptedCount = quotes.filter((d) => d.status === "won" || d.status === "ongoing").length;
   const conversion = quotes.length ? Math.round((acceptedCount / quotes.length) * 100) : 0;
 
@@ -62,7 +70,7 @@ export default async function DashboardPage() {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     months.push({ key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, label: d.toLocaleString("en-US", { month: "short" }) });
   }
-  const monthly = months.map((m) => ({ ...m, total: sum(invoices.filter((d) => (d.doc_date ?? "").slice(0, 7) === m.key)) }));
+  const monthly = months.map((m) => ({ ...m, total: sum(issuedInvoices.filter((d) => (d.doc_date ?? "").slice(0, 7) === m.key)) }));
   const monthlyMax = Math.max(1, ...monthly.map((m) => m.total));
 
   // quote pipeline by status
@@ -73,7 +81,7 @@ export default async function DashboardPage() {
 
   // top clients by total business value
   const byClient: Record<string, number> = {};
-  for (const d of all) {
+  for (const d of issuedInvoices) {
     const n = d.client_name || "—";
     byClient[n] = (byClient[n] || 0) + (Number(d.grand_total) || 0);
   }
@@ -81,8 +89,8 @@ export default async function DashboardPage() {
   const topMax = Math.max(1, ...topClients.map((c) => c.total));
 
   const kpis = [
-    { label: "Outstanding", value: money(outstanding), tint: "bg-gold/10 text-gold", icon: I.wallet, sub: `${invoices.filter((d) => d.status !== "paid").length} unpaid invoices` },
-    { label: "Invoiced (all time)", value: money(invoicedTotal), tint: "bg-navy/10 text-navy", icon: I.doc, sub: `${invoices.length} tax invoices` },
+    { label: "Outstanding", value: money(outstanding), tint: "bg-gold/10 text-gold", icon: I.wallet, sub: `${outstandingRows.length} invoices with balance` },
+    { label: "Invoiced (all time)", value: money(invoicedTotal), tint: "bg-navy/10 text-navy", icon: I.doc, sub: `${issuedInvoices.length} issued tax invoices` },
     { label: `Invoiced in ${monthName}`, value: money(thisMonth), tint: "bg-emerald-500/10 text-emerald-600", icon: I.calendar, sub: "current month" },
     { label: "Quote conversion", value: `${conversion}%`, tint: "bg-blue-500/10 text-blue-600", icon: I.trend, sub: `${acceptedCount} of ${quotes.length} won or ongoing` },
   ];

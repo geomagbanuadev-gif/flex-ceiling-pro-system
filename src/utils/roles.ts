@@ -10,6 +10,8 @@ export const canSeeProformas = (r: Role) => r === "super" || r === "staff" || r 
 export const canSeeReceipts = (r: Role) => r === "super" || r === "staff" || r === "invoices";
 // Procurement (suppliers + purchase orders) is internal buying — super/staff only.
 export const canSeeProcurement = (r: Role) => r === "super" || r === "staff";
+export const canSeeProjects = (r: Role) => r === "super" || r === "staff";
+export const canSeeFinance = (r: Role) => r === "super";
 
 /** Whether a role may act on a given document type. */
 export function canAccessType(role: Role, type: "quote" | "invoice" | "proforma" | "receipt"): boolean {

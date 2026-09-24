@@ -12,6 +12,9 @@ Postgres, and generate a clean, branded PDF on demand.
 - Automatic calculations (area × rate, VAT, advance / balance) and branded, on-demand PDFs
 - Secure, token-scoped client **share links** (one document, no login required)
 - Clients directory, dashboard, search / filter / sort / CSV export
+- Tax invoice sales reports with weekly, 14-day, monthly, custom-date, and saved snapshot views
+- Projects linking sales documents, purchase orders, expenses, and cash movement
+- Super-only finance overview, expenses, receivables/payables aging, and PDF/Excel exports
 - Role-based access (Super / Staff / Quotes / Invoices) with user management
 
 ## Tech stack
@@ -32,9 +35,17 @@ cp .env.example .env.local   # then fill in your Supabase keys
 npm run dev                  # http://localhost:3000
 ```
 
-**Database:** run [`supabase/schema.sql`](supabase/schema.sql) once in the Supabase SQL Editor
-(creates tables, roles, and RLS). Add your account in **Supabase → Authentication → Users** — the
+**Database:** run [`supabase/schema.sql`](supabase/schema.sql), then
+[`supabase/production-safety.sql`](supabase/production-safety.sql), in the Supabase SQL Editor
+(creates tables, roles, RLS, and transactional finance safeguards). Add your account in **Supabase → Authentication → Users** — the
 first user is backfilled as an active super. Keep public sign-ups **off** (internal tool).
+
+For an existing installation, review [`supabase/finance-audit.sql`](supabase/finance-audit.sql),
+then run [`supabase/finance-operations.sql`](supabase/finance-operations.sql). Run
+[`supabase/finance-reviewed-backfill.sql`](supabase/finance-reviewed-backfill.sql) only after
+reviewing the proposed receipt-to-invoice links. Re-run
+[`supabase/production-safety.sql`](supabase/production-safety.sql) before deploying document
+regeneration and expense payments.
 
 ### Environment variables
 
@@ -57,7 +68,7 @@ first user is backfilled as an active super. Keep public sign-ups **off** (inter
 ## Project structure
 
 ```
-src/app/          routes (login, dashboard, quotes, clients, settings, users, share)
+src/app/          routes (documents, sales reports, projects, expenses, finance, settings)
 src/components/    UI components (shell, forms, PDF documents, …)
 src/utils/         business logic + Supabase clients (+ co-located *.test.ts)
 supabase/          schema.sql (tables + RBAC + RLS)

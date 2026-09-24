@@ -83,6 +83,9 @@ icon at the top to open it). It contains:
 | **Pro Forma** | All pro forma invoices |
 | **Invoices** | All tax invoices |
 | **Clients** | Your customer list |
+| **Projects** | Client jobs linking sales, purchases and expenses (Super / Staff) |
+| **Expenses** | Salary, petrol and other non-PO costs (Super only) |
+| **Finance** | Receivables, payables, margin and cash reports (Super only) |
 | **Settings** | Your company details (super users only) |
 | **Users** | Manage who can log in (super users only) |
 
@@ -156,7 +159,8 @@ the totals, and a live **PDF preview** on the right.
 A quotation or pro forma is **Ongoing** when the accepted job is underway. This is
 separate from **Paid**, which records payment; changing a document to Ongoing does not
 mark an invoice as paid. Ongoing quotations still count as accepted in the Dashboard's
-quote conversion figure. Receipts use Draft · Issued instead.
+quote conversion figure. Receipts use Draft · Issued · Void instead. Only **Issued**
+receipts count as money received.
 
 A quotation also shows a **validity badge** (valid until / expired) based on its date and
 validity days.
@@ -286,7 +290,37 @@ On the **Quotes**, **Pro Forma** and **Invoices** pages:
 - **Export** — click **Export** to download the current list as a **CSV** file (opens in
   Excel) — handy for your accountant.
 
+### Sales Reports
+
+Open **Sales Reports** to generate a report from tax invoices only. Choose a calendar
+week, the last 14 days, a selected month, or your own date range. By default, the report
+counts Sent and Paid invoices and excludes Draft and Lost invoices; use the status filter
+when you need a different view.
+
+The summary shows the invoice count, subtotal, discounts, VAT, and total sales. Use
+**Export PDF** or **Export Excel** to download the current result, or **Save report** to
+keep an exact snapshot. Saved reports appear as cards below the report. Click **Preview**
+on a saved report to view its formatted PDF and download either file type. A saved
+snapshot does not change if an invoice is edited later.
+
 Each tab (Quotes / Pro Forma / Invoices) only ever shows that one type of document.
+
+### Projects, expenses and finance
+
+Use **Projects** to group a client job's sales documents and purchase orders. Super users
+also see project expenses, margin and net cash. Select the project while editing a document,
+purchase order, receipt or expense; the system checks that its client matches.
+
+Use **Expenses** for costs that do not already have a purchase order, such as salary,
+petrol, rent, utilities and client incidentals. Do not enter a purchase order again as an
+expense, because that would count the same cost twice. A posted expense enters payables;
+record payments on its detail page as money is actually paid.
+
+Use **Finance** for live accounts receivable and payable reports. Receivables come from
+issued invoices less issued receipts applied to them. Payables combine active purchase
+orders and posted expenses less their payment logs. Due dates drive the aging buckets.
+The Finance overview keeps **margin** and **net cash** separate, and both detailed reports
+can be exported as PDF or Excel.
 
 ---
 
@@ -374,8 +408,8 @@ We recommend everyone changes the temporary password they were given on first lo
   advance with a pro forma, then issue the tax invoice when approved (one click each).
 - **Use the red note line** — type important conditions in the **Note** field, or start a
   table line with `*`, so they stand out in red on the PDF.
-- **Keep statuses up to date** — mark quotes **Won/Lost** and invoices **Paid** so your
-  Dashboard figures stay accurate.
+- **Issue and apply receipts** — invoice balances and cash received come from issued
+  receipts, not only from manually choosing an invoice status.
 - **Export for the accountant** — the **Export** (CSV) button gives a clean spreadsheet.
 
 ---
@@ -414,6 +448,10 @@ Refresh the page in your browser. If it persists, contact your system administra
 - **VAT:** Value Added Tax (5% in the UAE).
 - **Advance Payment:** the partial amount requested up front on a pro forma.
 - **Balance Due:** the remaining amount after the advance (Grand Total − Advance).
+- **Receivable:** the invoice amount still owed after issued receipts.
+- **Payable:** the purchase-order or expense amount still owed after payments.
+- **Project Margin:** invoiced sales excluding VAT minus project costs.
+- **Net Cash:** money received minus money actually paid.
 - **Status:** where a document stands (Draft, Sent, Won, Ongoing, Lost, Paid or Issued,
   depending on the document type).
 - **Super user:** an administrator who can manage users and company settings.

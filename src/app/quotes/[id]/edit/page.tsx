@@ -9,11 +9,14 @@ export default async function EditDocumentPage(props: PageProps<"/quotes/[id]/ed
   const { id } = await props.params;
   const supabase = await createClient();
 
-  const [docRes, itemsRes, clientsRes, settingsRes] = await Promise.all([
+  const [docRes, itemsRes, clientsRes, settingsRes, projectsRes, invoicesRes, receiptsRes] = await Promise.all([
     supabase.from("documents").select("*").eq("id", id).maybeSingle(),
     supabase.from("document_items").select("*").eq("document_id", id).order("sort_order"),
     supabase.from("clients").select("id, name, trn, address, email, contact_person, contact_phone").order("name"),
     supabase.from("company_settings").select("*").eq("id", 1).maybeSingle(),
+    supabase.from("projects").select("id, name, code, client_id").neq("status", "cancelled").order("name"),
+    supabase.from("documents").select("id, number, client_id, project_id, grand_total").eq("type", "invoice").in("status", ["sent", "paid"]).order("doc_date", { ascending: false }),
+    supabase.from("documents").select("id, status, grand_total, applies_to_invoice_id").eq("type", "receipt").eq("status", "issued"),
   ]);
 
   const doc = docRes.data;
@@ -21,6 +24,11 @@ export default async function EditDocumentPage(props: PageProps<"/quotes/[id]/ed
   const settings = settingsRes.data;
   const items = itemsRes.data ?? [];
   const clients = clientsRes.data ?? [];
+  const issuedReceipts = (receiptsRes.data ?? []).filter((receipt) => receipt.id !== id);
+  const invoices = (invoicesRes.data ?? []).filter((invoice) => invoice.client_id).map((invoice) => {
+    const received = issuedReceipts.filter((receipt) => receipt.applies_to_invoice_id === invoice.id).reduce((sum, receipt) => sum + (Number(receipt.grand_total) || 0), 0);
+    return { id: invoice.id, number: invoice.number, clientId: invoice.client_id!, projectId: invoice.project_id, grandTotal: Number(invoice.grand_total) || 0, received, balance: Math.max((Number(invoice.grand_total) || 0) - received, 0) };
+  });
 
   // Receipts use a dedicated, simpler form
   if (doc.type === "receipt") {
@@ -41,6 +49,8 @@ export default async function EditDocumentPage(props: PageProps<"/quotes/[id]/ed
       description: first?.description ?? "Advance Payment",
       amount: Number(first?.amount ?? doc.grand_total ?? 0),
       notes: doc.notes ?? "",
+      projectId: doc.project_id,
+      appliesToInvoiceId: doc.applies_to_invoice_id,
     };
     return (
       <AppShell
@@ -48,7 +58,7 @@ export default async function EditDocumentPage(props: PageProps<"/quotes/[id]/ed
         title={`Edit Receipt ${doc.number}`}
         action={<Link href={`/quotes/${id}`} className="text-sm font-medium text-navy-600 hover:underline">← Cancel</Link>}
       >
-        <ReceiptForm clients={clients} nextNumber={doc.number ?? ""} initial={receiptInitial} />
+        <ReceiptForm clients={clients} projects={projectsRes.data ?? []} invoices={invoices} nextNumber={doc.number ?? ""} initial={receiptInitial} />
       </AppShell>
     );
   }
@@ -74,6 +84,8 @@ export default async function EditDocumentPage(props: PageProps<"/quotes/[id]/ed
     discount: doc.discount ?? 0,
     advanceAmount: doc.advance_amount ?? 0,
     notes: doc.notes ?? "",
+    projectId: doc.project_id,
+    dueDate: doc.due_date ?? "",
     items: items.map((it) => ({
       description: it.description ?? "",
       area: it.area == null ? "" : String(it.area),
@@ -98,6 +110,7 @@ export default async function EditDocumentPage(props: PageProps<"/quotes/[id]/ed
           vatRate: settings?.vat_rate ?? 5,
         }}
         initial={initial}
+        projects={projectsRes.data ?? []}
       />
     </AppShell>
   );

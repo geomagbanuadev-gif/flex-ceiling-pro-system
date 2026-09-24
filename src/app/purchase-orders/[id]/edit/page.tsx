@@ -10,11 +10,12 @@ export default async function EditPoPage(props: PageProps<"/purchase-orders/[id]
   if (me && !canSeeProcurement(me.role)) redirect("/");
   const { id } = await props.params;
   const supabase = await createClient();
-  const [poRes, itemsRes, suppliersRes, settingsRes] = await Promise.all([
+  const [poRes, itemsRes, suppliersRes, settingsRes, projectsRes] = await Promise.all([
     supabase.from("purchase_orders").select("*").eq("id", id).maybeSingle(),
     supabase.from("purchase_order_items").select("*").eq("purchase_order_id", id).order("sort_order"),
     supabase.from("suppliers").select("id, name, trn, address, email, contact_person, contact_phone").order("name"),
     supabase.from("company_settings").select("vat_rate").eq("id", 1).maybeSingle(),
+    supabase.from("projects").select("id, name, code").eq("status", "active").order("name"),
   ]);
   const po = poRes.data;
   if (!po) notFound();
@@ -32,6 +33,8 @@ export default async function EditPoPage(props: PageProps<"/purchase-orders/[id]
     poDate: po.po_date ?? new Date().toISOString().slice(0, 10),
     expectedDate: po.expected_date ?? "",
     reference: po.reference ?? "",
+    projectId: po.project_id,
+    dueDate: po.due_date ?? "",
     vatRate: po.vat_rate ?? 5,
     discount: po.discount ?? 0,
     notes: po.notes ?? "",
@@ -52,6 +55,7 @@ export default async function EditPoPage(props: PageProps<"/purchase-orders/[id]
     >
       <PurchaseOrderForm
         suppliers={suppliersRes.data ?? []}
+        projects={projectsRes.data ?? []}
         nextNumber={po.number ?? ""}
         defaults={{ vatRate: settingsRes.data?.vat_rate ?? 5 }}
         initial={initial}

@@ -1,16 +1,20 @@
 import { SignOutButton } from "./SignOutButton";
 import { Shell, type ShellNavItem } from "./Shell";
-import { getProfile, canSeeQuotes, canSeeInvoices, canSeeProformas, canSeeReceipts, canSeeProcurement } from "@/utils/profile";
+import { getProfile, canSeeQuotes, canSeeInvoices, canSeeProformas, canSeeReceipts, canSeeProcurement, canSeeProjects, canSeeFinance } from "@/utils/profile";
 
-type NavDef = ShellNavItem & { superOnly?: boolean; need?: "quotes" | "invoices" | "proforma" | "receipt" | "procurement" };
+type NavDef = ShellNavItem & { superOnly?: boolean; need?: "quotes" | "invoices" | "proforma" | "receipt" | "procurement" | "projects" | "finance" };
 const NAV: NavDef[] = [
   { href: "/", label: "Dashboard", key: "dashboard", group: "main" },
   { href: "/quotes?type=quote", label: "Quotes", key: "quotes", group: "docs", need: "quotes" },
   { href: "/quotes?type=proforma", label: "Pro Forma", key: "proforma", group: "docs", need: "proforma" },
   { href: "/quotes?type=invoice", label: "Invoices", key: "invoices", group: "docs", need: "invoices" },
+  { href: "/sales-reports", label: "Sales Reports", key: "sales-reports", group: "docs", need: "invoices" },
   { href: "/quotes?type=receipt", label: "Receipts", key: "receipts", group: "docs", need: "receipt" },
   { href: "/suppliers", label: "Suppliers", key: "suppliers", group: "procurement", need: "procurement" },
   { href: "/purchase-orders", label: "Purchase Orders", key: "purchase-orders", group: "procurement", need: "procurement" },
+  { href: "/projects", label: "Projects", key: "projects", group: "operations", need: "projects" },
+  { href: "/expenses", label: "Expenses", key: "expenses", group: "finance", need: "finance" },
+  { href: "/finance", label: "Finance", key: "finance", group: "finance", need: "finance" },
   { href: "/clients", label: "Clients", key: "clients", group: "manage" },
   { href: "/settings", label: "Settings", key: "settings", group: "manage", superOnly: true },
   { href: "/users", label: "Users", key: "users", group: "manage", superOnly: true },
@@ -54,6 +58,8 @@ export async function AppShell({
     if (n.need === "proforma" && !canSeeProformas(profile.role)) return false;
     if (n.need === "receipt" && !canSeeReceipts(profile.role)) return false;
     if (n.need === "procurement" && !canSeeProcurement(profile.role)) return false;
+    if (n.need === "projects" && !canSeeProjects(profile.role)) return false;
+    if (n.need === "finance" && !canSeeFinance(profile.role)) return false;
     return true;
   }).map(({ href, label, key, group }) => ({ href, label, key, group }));
 

@@ -13,6 +13,8 @@ type Client = {
   contact_person: string | null;
   contact_phone: string | null;
 };
+type Project = { id: string; name: string; code: string | null; client_id: string };
+type Invoice = { id: string; number: string; clientId: string; projectId: string | null; grandTotal: number; received: number; balance: number };
 
 export type ReceiptInitial = {
   id: string;
@@ -30,6 +32,8 @@ export type ReceiptInitial = {
   description: string;
   amount: number;
   notes: string;
+  projectId: string | null;
+  appliesToInvoiceId: string | null;
 };
 
 const numOr0 = (v: string) => {
@@ -41,10 +45,14 @@ export function ReceiptForm({
   clients,
   nextNumber,
   initial,
+  projects = [],
+  invoices = [],
 }: {
   clients: Client[];
   nextNumber: string;
   initial?: ReceiptInitial;
+  projects?: Project[];
+  invoices?: Invoice[];
 }) {
   const [clientId, setClientId] = useState<string | null>(initial?.clientId ?? null);
   const [clientName, setClientName] = useState(initial?.clientName ?? "");
@@ -60,6 +68,8 @@ export function ReceiptForm({
   const [description, setDescription] = useState(initial?.description ?? "Advance Payment");
   const [amount, setAmount] = useState(String(initial?.amount ?? ""));
   const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [projectId, setProjectId] = useState(initial?.projectId ?? "");
+  const [invoiceId, setInvoiceId] = useState(initial?.appliesToInvoiceId ?? "");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
 
@@ -75,6 +85,24 @@ export function ReceiptForm({
     setClientEmail(c.email ?? "");
     setContactPerson(c.contact_person ?? "");
     setContactPhone(c.contact_phone ?? "");
+    if (projectId && !projects.some((project) => project.id === projectId && project.client_id === c.id)) setProjectId("");
+    if (invoiceId && !invoices.some((invoice) => invoice.id === invoiceId && invoice.clientId === c.id)) setInvoiceId("");
+  }
+
+  function pickProject(id: string) {
+    setProjectId(id);
+    const project = projects.find((item) => item.id === id);
+    if (project) pickClient(project.client_id);
+  }
+
+  function pickInvoice(id: string) {
+    setInvoiceId(id);
+    const invoice = invoices.find((item) => item.id === id);
+    if (!invoice) return;
+    pickClient(invoice.clientId);
+    setProjectId(invoice.projectId ?? "");
+    setDescription(`Payment for ${invoice.number}`);
+    if (invoice.balance > 0) setAmount(String(invoice.balance));
   }
 
   function submit() {
@@ -104,6 +132,8 @@ export function ReceiptForm({
       grandTotal: total,
       advanceAmount: 0,
       paymentMethod,
+      projectId: projectId || null,
+      appliesToInvoiceId: invoiceId || null,
       items: [{ description, area: null, unit: "", rate: null, amount: total }],
     };
     startTransition(async () => {
@@ -134,9 +164,16 @@ export function ReceiptForm({
               {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
+          <div className="sm:col-span-2">
+            <label className={lbl}>Project</label>
+            <select className={inp + " mt-1.5"} value={projectId} onChange={(e) => pickProject(e.target.value)}>
+              <option value="">— Unassigned —</option>
+              {projects.filter((project) => !clientId || project.client_id === clientId).map((project) => <option key={project.id} value={project.id}>{project.code ? `${project.code} — ` : ""}{project.name}</option>)}
+            </select>
+          </div>
           <div>
             <label className={lbl}>Client name *</label>
-            <input className={inp + " mt-1.5"} value={clientName} onChange={(e) => { setClientName(e.target.value); setClientId(null); }} />
+            <input className={inp + " mt-1.5"} value={clientName} onChange={(e) => { setClientName(e.target.value); setClientId(null); setProjectId(""); setInvoiceId(""); }} />
           </div>
           <div>
             <label className={lbl}>TRN</label>
@@ -153,6 +190,14 @@ export function ReceiptForm({
       <section className={section}>
         <h2 className={h2}>Receipt details</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className={lbl}>Apply payment to invoice</label>
+            <select className={inp + " mt-1.5"} value={invoiceId} onChange={(e) => pickInvoice(e.target.value)}>
+              <option value="">— Unapplied receipt —</option>
+              {invoices.filter((invoice) => !clientId || invoice.clientId === clientId).map((invoice) => <option key={invoice.id} value={invoice.id}>{invoice.number} · balance AED {invoice.balance.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</option>)}
+            </select>
+            <p className="mt-1 text-xs text-slate-500">Only issued receipts reduce the selected invoice balance.</p>
+          </div>
           <div>
             <label className={lbl}>Receipt No.</label>
             <input className={inp + " mt-1.5"} value={number} onChange={(e) => setNumber(e.target.value)} />

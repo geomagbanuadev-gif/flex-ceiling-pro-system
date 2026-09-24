@@ -14,6 +14,7 @@ type Client = {
   contact_person: string | null;
   contact_phone: string | null;
 };
+type Project = { id: string; name: string; code: string | null; client_id: string };
 
 type Item = { description: string; area: string; unit: string; rate: string; amount: string };
 
@@ -42,6 +43,8 @@ export type QuoteInitial = {
   discount: number;
   advanceAmount: number;
   notes: string;
+  projectId: string | null;
+  dueDate: string;
   items: Item[];
 };
 
@@ -51,12 +54,14 @@ export function QuoteForm({
   defaults,
   initial,
   presetClient,
+  projects = [],
 }: {
   clients: Client[];
   nextNumber: string;
   defaults: { paymentTerms: string; validityDays: number; vatRate: number };
   initial?: QuoteInitial;
   presetClient?: Client;
+  projects?: Project[];
 }) {
   const isInvoice = initial?.type === "invoice";
   const isProforma = initial?.type === "proforma";
@@ -78,6 +83,8 @@ export function QuoteForm({
   const [discount, setDiscount] = useState(String(initial?.discount ?? ""));
   const [advance, setAdvance] = useState(String(initial?.advanceAmount ?? ""));
   const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [projectId, setProjectId] = useState(initial?.projectId ?? "");
+  const [dueDate, setDueDate] = useState(initial?.dueDate ?? "");
   const [items, setItems] = useState<Item[]>(initial?.items?.length ? initial.items : [emptyItem()]);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
@@ -106,6 +113,13 @@ export function QuoteForm({
     setClientEmail(c.email ?? "");
     setContactPerson(c.contact_person ?? "");
     setContactPhone(c.contact_phone ?? "");
+    if (projectId && !projects.some((project) => project.id === projectId && project.client_id === c.id)) setProjectId("");
+  }
+
+  function pickProject(id: string) {
+    setProjectId(id);
+    const project = projects.find((item) => item.id === id);
+    if (project) pickClient(project.client_id);
   }
 
   function updateItem(i: number, field: keyof Item, value: string) {
@@ -150,6 +164,8 @@ export function QuoteForm({
       vatAmount: totals.vatAmount,
       grandTotal: totals.grandTotal,
       advanceAmount,
+      projectId: projectId || null,
+      dueDate,
       items: items.map((it) => ({
         description: it.description,
         area: it.area === "" ? null : numOr0(it.area),
@@ -186,9 +202,16 @@ export function QuoteForm({
               ))}
             </select>
           </div>
+          <div className="sm:col-span-2">
+            <label className={lbl}>Project</label>
+            <select className={inp + " mt-1.5"} value={projectId} onChange={(e) => pickProject(e.target.value)}>
+              <option value="">— Unassigned —</option>
+              {projects.filter((project) => !clientId || project.client_id === clientId).map((project) => <option key={project.id} value={project.id}>{project.code ? `${project.code} — ` : ""}{project.name}</option>)}
+            </select>
+          </div>
           <div>
             <label className={lbl}>Client name *</label>
-            <input className={inp + " mt-1.5"} value={clientName} onChange={(e) => { setClientName(e.target.value); setClientId(null); }} />
+            <input className={inp + " mt-1.5"} value={clientName} onChange={(e) => { setClientName(e.target.value); setClientId(null); setProjectId(""); }} />
           </div>
           <div>
             <label className={lbl}>TRN</label>
@@ -225,6 +248,7 @@ export function QuoteForm({
             <label className={lbl}>Date</label>
             <input type="date" className={inp + " mt-1.5"} value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
+          {isInvoice && <div><label className={lbl}>Due date</label><input type="date" className={inp + " mt-1.5"} value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>}
           <div className="sm:col-span-2">
             <label className={lbl}>Reference / scope</label>
             <input className={inp + " mt-1.5"} value={reference} onChange={(e) => setReference(e.target.value)} placeholder="SUPPLY AND INSTALLATION OF STRETCH CEILING…" />

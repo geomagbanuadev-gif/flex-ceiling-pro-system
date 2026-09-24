@@ -37,6 +37,8 @@ export type PoPayload = {
   poDate: string;
   expectedDate: string;
   reference: string;
+  projectId: string | null;
+  dueDate: string;
   notes: string;
   vatRate: number;
   discount: number;
@@ -76,6 +78,8 @@ export async function savePurchaseOrder(p: PoPayload) {
     po_date: p.poDate || null,
     expected_date: p.expectedDate || null,
     reference: p.reference || null,
+    project_id: p.projectId || null,
+    due_date: p.dueDate || null,
     subtotal: p.subtotal,
     discount: p.discount || 0,
     vat_rate: p.vatRate,

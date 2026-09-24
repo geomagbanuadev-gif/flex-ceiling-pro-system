@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { canSeeQuotes, canSeeInvoices, canSeeProformas, canSeeReceipts, canAccessType, type Role } from "./roles";
+import { canSeeQuotes, canSeeInvoices, canSeeProformas, canSeeReceipts, canSeeProjects, canSeeFinance, canAccessType, type Role } from "./roles";
 
 const ROLES: Role[] = ["super", "staff", "quotes", "invoices"];
 
@@ -15,6 +15,10 @@ describe("role access helpers", () => {
   });
   it("receipt visibility matches invoices group", () => {
     expect(ROLES.filter(canSeeReceipts)).toEqual(["super", "staff", "invoices"]);
+  });
+  it("projects are operational while finance is super-only", () => {
+    expect(ROLES.filter(canSeeProjects)).toEqual(["super", "staff"]);
+    expect(ROLES.filter(canSeeFinance)).toEqual(["super"]);
   });
 });
 

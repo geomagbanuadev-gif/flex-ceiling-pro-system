@@ -28,7 +28,8 @@ export async function GET(req: NextRequest) {
     .select("number, type, status, doc_date, client_name, client_trn, subtotal, discount, vat_amount, grand_total");
   if (q) query = query.or(`client_name.ilike.%${q}%,number.ilike.%${q}%`);
   if (type) query = query.eq("type", type);
-  if (status) query = query.eq("status", status);
+  if (status === "active" && type === "invoice") query = query.in("status", ["sent", "paid"]);
+  else if (status) query = query.eq("status", status);
   if (client) query = query.eq("client_id", client);
   if (from) query = query.gte("doc_date", from);
   if (to) query = query.lte("doc_date", to);

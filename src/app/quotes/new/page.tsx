@@ -14,10 +14,11 @@ export default async function NewQuotePage(props: PageProps<"/quotes/new">) {
   const presetId = typeof sp.client === "string" ? sp.client : null;
 
   const supabase = await createClient();
-  const [clientsRes, settingsRes, numbersRes] = await Promise.all([
+  const [clientsRes, settingsRes, numbersRes, projectsRes] = await Promise.all([
     supabase.from("clients").select("id, name, trn, address, email, contact_person, contact_phone").order("name"),
     supabase.from("company_settings").select("*").eq("id", 1).maybeSingle(),
     supabase.from("documents").select("number").eq("type", "quote"),
+    supabase.from("projects").select("id, name, code, client_id").eq("status", "active").order("name"),
   ]);
 
   const settings = settingsRes.data;
@@ -40,6 +41,7 @@ export default async function NewQuotePage(props: PageProps<"/quotes/new">) {
           vatRate: settings?.vat_rate ?? 5,
         }}
         presetClient={presetClient}
+        projects={projectsRes.data ?? []}
       />
     </AppShell>
   );

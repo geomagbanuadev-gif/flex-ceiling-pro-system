@@ -6,6 +6,7 @@ import { savePurchaseOrder, type PoPayload } from "@/app/purchase-orders/actions
 import { computeTotals } from "@/utils/totals";
 
 type Supplier = { id: string; name: string; trn: string | null; address: string | null; email: string | null; contact_person: string | null; contact_phone: string | null };
+type Project = { id: string; name: string; code: string | null };
 type Item = { description: string; quantity: string; unit: string; unitPrice: string; amount: string };
 
 const emptyItem = (): Item => ({ description: "", quantity: "", unit: "pcs", unitPrice: "", amount: "" });
@@ -17,12 +18,13 @@ export type PoInitial = {
   supplierName: string; supplierTrn: string; supplierAddress: string; supplierEmail: string;
   contactPerson: string; contactPhone: string;
   number: string; poDate: string; expectedDate: string; reference: string;
+  projectId: string | null; dueDate: string;
   vatRate: number; discount: number; notes: string;
   items: Item[];
 };
 
-export function PurchaseOrderForm({ suppliers, nextNumber, defaults, initial }: {
-  suppliers: Supplier[]; nextNumber: string; defaults: { vatRate: number }; initial?: PoInitial;
+export function PurchaseOrderForm({ suppliers, projects = [], nextNumber, defaults, initial }: {
+  suppliers: Supplier[]; projects?: Project[]; nextNumber: string; defaults: { vatRate: number }; initial?: PoInitial;
 }) {
   const [supplierId, setSupplierId] = useState<string | null>(initial?.supplierId ?? null);
   const [supplierName, setSupplierName] = useState(initial?.supplierName ?? "");
@@ -35,6 +37,8 @@ export function PurchaseOrderForm({ suppliers, nextNumber, defaults, initial }: 
   const [poDate, setPoDate] = useState(initial?.poDate ?? new Date().toISOString().slice(0, 10));
   const [expectedDate, setExpectedDate] = useState(initial?.expectedDate ?? "");
   const [reference, setReference] = useState(initial?.reference ?? "");
+  const [projectId, setProjectId] = useState(initial?.projectId ?? "");
+  const [dueDate, setDueDate] = useState(initial?.dueDate ?? "");
   const [vatRate, setVatRate] = useState(initial?.vatRate ?? defaults.vatRate);
   const [discount, setDiscount] = useState(String(initial?.discount ?? ""));
   const [notes, setNotes] = useState(initial?.notes ?? "");
@@ -72,7 +76,7 @@ export function PurchaseOrderForm({ suppliers, nextNumber, defaults, initial }: 
     if (!supplierName.trim()) { setError("Please choose or enter a supplier."); return; }
     const payload: PoPayload = {
       id: initial?.id, supplierId, supplierName, supplierTrn, supplierAddress, supplierEmail,
-      contactPerson, contactPhone, number, poDate, expectedDate, reference, notes,
+      contactPerson, contactPhone, number, poDate, expectedDate, reference, projectId: projectId || null, dueDate, notes,
       vatRate: Number(vatRate) || 0, discount: totals.discount, subtotal: totals.subtotal,
       vatAmount: totals.vatAmount, grandTotal: totals.grandTotal,
       items: items.map((it) => ({
@@ -144,8 +148,16 @@ export function PurchaseOrderForm({ suppliers, nextNumber, defaults, initial }: 
             </div>
           </div>
           <div className="sm:col-span-2">
-            <label className={lbl}>Reference / project</label>
-            <input className={inp + " mt-1.5"} value={reference} onChange={(e) => setReference(e.target.value)} placeholder="e.g. materials for INDOORS HIGH FINISHING job" />
+            <label className={lbl}>Project</label>
+            <select className={inp + " mt-1.5"} value={projectId} onChange={(e) => setProjectId(e.target.value)}><option value="">— Unassigned / overhead —</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.code ? `${project.code} — ` : ""}{project.name}</option>)}</select>
+          </div>
+          <div>
+            <label className={lbl}>Payment due date</label>
+            <input type="date" className={inp + " mt-1.5"} value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          </div>
+          <div>
+            <label className={lbl}>Reference</label>
+            <input className={inp + " mt-1.5"} value={reference} onChange={(e) => setReference(e.target.value)} />
           </div>
         </div>
       </section>
