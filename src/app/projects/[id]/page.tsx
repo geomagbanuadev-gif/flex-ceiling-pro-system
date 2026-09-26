@@ -3,13 +3,16 @@ import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { ProjectForm } from "@/components/ProjectForm";
 import { createClient } from "@/utils/supabase/server";
-import { getProfile, canSeeProjects } from "@/utils/profile";
+import { getProfile, canAccessType, canManageProjects, canSeeFinance, canSeeProcurement, canSeeProjects } from "@/utils/profile";
 import { calculateFinanceTotals } from "@/utils/finance";
 import { fmtDate, money2 } from "@/utils/format";
 
 export default async function ProjectDetailPage(props: PageProps<"/projects/[id]">) {
   const profile = await getProfile();
   if (!profile || !canSeeProjects(profile.role)) redirect("/");
+  const showFinance = canSeeFinance(profile.role);
+  const canManage = canManageProjects(profile.role);
+  const canOpenProcurement = canSeeProcurement(profile.role);
   const { id } = await props.params;
   const supabase = await createClient();
   const [{ data: project }, { data: clients }, { data: documents }, { data: purchaseOrders }, { data: expenses }] = await Promise.all([
@@ -30,13 +33,17 @@ export default async function ProjectDetailPage(props: PageProps<"/projects/[id]
   const cards = [["Net sales", totals.netSales], ["Received", totals.moneyReceived], ["Committed costs", totals.committedCosts], ["Money paid", totals.moneyPaid], ["Margin", totals.projectMargin], ["Net cash", totals.netCash]] as const;
 
   return <AppShell active="projects" title={project.name} subtitle={project.code || "Client project"} action={<Link href="/projects" className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm">← Projects</Link>}>
-    {profile.role === "super" && <div className="mb-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">{cards.map(([label, amount]) => <div key={label} className="rounded-2xl bg-white p-4 ring-1 ring-slate-200"><p className="text-xs text-slate-500">{label}</p><p className={`mt-1 font-semibold tabular-nums ${label === "Margin" && amount < 0 ? "text-red-600" : "text-slate-900"}`}>{money2(amount)}</p></div>)}</div>}
+    {showFinance && <div className="mb-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">{cards.map(([label, amount]) => <div key={label} className="rounded-2xl bg-white p-4 ring-1 ring-slate-200"><p className="text-xs text-slate-500">{label}</p><p className={`mt-1 font-semibold tabular-nums ${label === "Margin" && amount < 0 ? "text-red-600" : "text-slate-900"}`}>{money2(amount)}</p></div>)}</div>}
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]"><div className="space-y-6">
-      <ProjectTable title="Sales documents" empty="No sales documents linked." headers={["Number", "Type", "Date", "Status", "Total"]} rows={(documents ?? []).map((doc) => [<Link key={doc.id} className="font-semibold text-navy" href={`/quotes/${doc.id}`}>{doc.number}</Link>, doc.type, fmtDate(doc.doc_date), doc.status, money2(doc.grand_total)])} />
-      <ProjectTable title="Purchase orders" empty="No purchase orders linked." headers={["Number", "Supplier", "Date", "Status", "Total"]} rows={(purchaseOrders ?? []).map((po) => [<Link key={po.id} className="font-semibold text-navy" href={`/purchase-orders/${po.id}`}>{po.number}</Link>, po.supplier_name || "—", fmtDate(po.po_date), po.status, money2(po.grand_total)])} />
-      {profile.role === "super" && <ProjectTable title="Expenses" empty="No expenses linked." headers={["Date", "Description", "Status", "Total"]} rows={(expenses ?? []).map((expense) => [fmtDate(expense.expense_date), <Link key={expense.id} className="font-semibold text-navy" href={`/expenses/${expense.id}`}>{expense.description}</Link>, expense.status, money2(expense.grand_total)])} />}
-    </div><div><h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Project details</h2><ProjectForm clients={clients ?? []} project={{ id: project.id, clientId: project.client_id, code: project.code ?? "", name: project.name, status: project.status, startDate: project.start_date ?? "", endDate: project.end_date ?? "", notes: project.notes ?? "" }} /></div></div>
+      <ProjectTable title="Sales documents" empty="No sales documents linked." headers={["Number", "Type", "Date", "Status", "Total"]} rows={(documents ?? []).map((doc) => [canAccessType(profile.role, doc.type) ? <Link key={doc.id} className="font-semibold text-navy" href={`/quotes/${doc.id}`}>{doc.number}</Link> : doc.number, doc.type, fmtDate(doc.doc_date), doc.status, money2(doc.grand_total)])} />
+      <ProjectTable title="Purchase orders" empty="No purchase orders linked." headers={["Number", "Supplier", "Date", "Status", "Total"]} rows={(purchaseOrders ?? []).map((po) => [canOpenProcurement ? <Link key={po.id} className="font-semibold text-navy" href={`/purchase-orders/${po.id}`}>{po.number}</Link> : po.number, po.supplier_name || "—", fmtDate(po.po_date), po.status, money2(po.grand_total)])} />
+      {showFinance && <ProjectTable title="Expenses" empty="No expenses linked." headers={["Date", "Description", "Status", "Total"]} rows={(expenses ?? []).map((expense) => [fmtDate(expense.expense_date), <Link key={expense.id} className="font-semibold text-navy" href={`/expenses/${expense.id}`}>{expense.description}</Link>, expense.status, money2(expense.grand_total)])} />}
+    </div><div><h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Project details</h2>{canManage ? <ProjectForm clients={clients ?? []} project={{ id: project.id, clientId: project.client_id, code: project.code ?? "", name: project.name, status: project.status, startDate: project.start_date ?? "", endDate: project.end_date ?? "", notes: project.notes ?? "" }} /> : <section className="space-y-3 rounded-2xl bg-white p-5 ring-1 ring-slate-200"><ProjectDetail label="Client" value={(clients ?? []).find((client) => client.id === project.client_id)?.name ?? "—"} /><ProjectDetail label="Status" value={project.status} /><ProjectDetail label="Start" value={project.start_date ? fmtDate(project.start_date) : "Not set"} /><ProjectDetail label="End" value={project.end_date ? fmtDate(project.end_date) : "Not set"} />{project.notes && <ProjectDetail label="Notes" value={project.notes} />}</section>}</div></div>
   </AppShell>;
+}
+
+function ProjectDetail({ label, value }: { label: string; value: React.ReactNode }) {
+  return <div><p className="text-xs text-slate-500">{label}</p><div className="mt-0.5 text-sm capitalize text-slate-800">{value}</div></div>;
 }
 
 function ProjectTable({ title, headers, rows, empty }: { title: string; headers: string[]; rows: React.ReactNode[][]; empty: string }) {

@@ -324,7 +324,7 @@ create table if not exists profiles (
   id         uuid primary key references auth.users on delete cascade,
   email      text,
   full_name  text,
-  role       text not null default 'staff' check (role in ('super','staff','quotes','invoices')),
+  role       text not null default 'staff' check (role in ('super','staff','finance','quotes','invoices')),
   active     boolean not null default false,   -- new users start with NO access until a super grants it
   created_at timestamptz default now()
 );
@@ -366,7 +366,7 @@ declare
   v_po_supplier_id uuid;
   v_po_project_id uuid;
 begin
-  if app_user_role() is distinct from 'super' then raise exception 'Not authorized for finance'; end if;
+  if coalesce(app_user_role(), '') not in ('super','finance') then raise exception 'Not authorized for finance'; end if;
   if jsonb_typeof(coalesce(p_items, '[]'::jsonb)) <> 'array' then raise exception 'Expense items must be an array'; end if;
   if v_purchase_order_id is not null then
     select supplier_id, project_id into v_po_supplier_id, v_po_project_id from purchase_orders where id = v_purchase_order_id;
@@ -473,6 +473,9 @@ create policy doc_access on documents for all to authenticated
     or (app_user_role() = 'quotes'   and type = 'quote')
     or (app_user_role() = 'invoices' and type in ('invoice','proforma','receipt'))
   );
+drop policy if exists finance_documents_read on documents;
+create policy finance_documents_read on documents for select to authenticated
+  using (app_user_role() = 'finance' and type in ('invoice','receipt'));
 
 -- document_items: inherit access from the parent document
 drop policy if exists auth_all on document_items;
@@ -488,6 +491,10 @@ create policy item_access on document_items for all to authenticated
       app_user_role() in ('super','staff')
       or (app_user_role() = 'quotes'   and d.type = 'quote')
       or (app_user_role() = 'invoices' and d.type in ('invoice','proforma','receipt')))));
+drop policy if exists finance_document_items_read on document_items;
+create policy finance_document_items_read on document_items for select to authenticated
+  using (app_user_role() = 'finance' and exists (
+    select 1 from documents d where d.id = document_id and d.type in ('invoice','receipt')));
 
 -- sales report snapshots are immutable; billing users can read and create them
 drop policy if exists sales_reports_read on sales_reports;
@@ -528,6 +535,16 @@ begin
       with check (app_user_role() in ('super','staff'))$f$, t);
   end loop;
 end $$;
+do $$
+declare t text;
+begin
+  foreach t in array array['suppliers','purchase_orders','purchase_order_items','purchase_payments']
+  loop
+    execute format('drop policy if exists finance_procurement_read on %I', t);
+    execute format($f$create policy finance_procurement_read on %I for select to authenticated
+      using (app_user_role() = 'finance')$f$, t);
+  end loop;
+end $$;
 
 -- projects: every active user can select a project; super/staff manage them
 drop policy if exists projects_read on projects;
@@ -542,13 +559,13 @@ drop policy if exists expenses_access on expenses;
 drop policy if exists expense_items_access on expense_items;
 drop policy if exists expense_payments_access on expense_payments;
 create policy expense_categories_access on expense_categories for all to authenticated
-  using (app_user_role() = 'super') with check (app_user_role() = 'super');
+  using (app_user_role() in ('super','finance')) with check (app_user_role() in ('super','finance'));
 create policy expenses_access on expenses for all to authenticated
-  using (app_user_role() = 'super') with check (app_user_role() = 'super');
+  using (app_user_role() in ('super','finance')) with check (app_user_role() in ('super','finance'));
 create policy expense_items_access on expense_items for all to authenticated
-  using (app_user_role() = 'super') with check (app_user_role() = 'super');
+  using (app_user_role() in ('super','finance')) with check (app_user_role() in ('super','finance'));
 create policy expense_payments_access on expense_payments for all to authenticated
-  using (app_user_role() = 'super') with check (app_user_role() = 'super');
+  using (app_user_role() in ('super','finance')) with check (app_user_role() in ('super','finance'));
 
 -- Private supplier-invoice files; accessed only through authenticated expense screens.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -556,8 +573,8 @@ values ('expense-attachments', 'expense-attachments', false, 10485760, array['ap
 on conflict (id) do update set public = false, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
 drop policy if exists expense_attachments_access on storage.objects;
 create policy expense_attachments_access on storage.objects for all to authenticated
-  using (bucket_id = 'expense-attachments' and public.app_user_role() = 'super')
-  with check (bucket_id = 'expense-attachments' and public.app_user_role() = 'super');
+  using (bucket_id = 'expense-attachments' and public.app_user_role() in ('super','finance'))
+  with check (bucket_id = 'expense-attachments' and public.app_user_role() in ('super','finance'));
 
 -- Read models keep dashboard, finance, and project list calculations in the
 -- database so pages fetch only the rows and totals they display.
@@ -722,7 +739,7 @@ create or replace function finance_period_summary(p_from date default null, p_to
 returns jsonb language plpgsql stable set search_path = public as $$
 declare result jsonb;
 begin
-  if app_user_role() is distinct from 'super' then raise exception 'Not authorized for finance'; end if;
+  if coalesce(app_user_role(), '') not in ('super','finance') then raise exception 'Not authorized for finance'; end if;
   with sales as (
     select round(coalesce(sum(coalesce(subtotal, 0) - coalesce(discount, 0)), 0), 2) as value
     from documents where type = 'invoice' and status in ('sent', 'paid') and (p_from is null or doc_date >= p_from) and (p_to is null or doc_date <= p_to)

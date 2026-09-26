@@ -163,7 +163,7 @@ create or replace function finance_period_summary(p_from date default null, p_to
 returns jsonb language plpgsql stable set search_path = public as $$
 declare result jsonb;
 begin
-  if app_user_role() is distinct from 'super' then raise exception 'Not authorized for finance'; end if;
+  if coalesce(app_user_role(), '') not in ('super','finance') then raise exception 'Not authorized for finance'; end if;
   with sales as (
     select round(coalesce(sum(coalesce(subtotal, 0) - coalesce(discount, 0)), 0), 2) as value
     from documents where type = 'invoice' and status in ('sent', 'paid') and (p_from is null or doc_date >= p_from) and (p_to is null or doc_date <= p_to)

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { LinkRow } from "@/components/LinkRow";
 import { createClient } from "@/utils/supabase/server";
-import { getProfile, canSeeProjects } from "@/utils/profile";
+import { getProfile, canManageProjects, canSeeFinance, canSeeProjects } from "@/utils/profile";
 import { money2 } from "@/utils/format";
 import { Pagination } from "@/components/Pagination";
 import { PAGE_SIZES } from "@/utils/pagination";
@@ -12,7 +12,8 @@ import { postgrestSearchTerm, uuidQueryParam } from "@/utils/query";
 export default async function ProjectsPage(props: PageProps<"/projects">) {
   const profile = await getProfile();
   if (!profile || !canSeeProjects(profile.role)) redirect("/");
-  const showFinance = profile.role === "super";
+  const showFinance = canSeeFinance(profile.role);
+  const canManage = canManageProjects(profile.role);
   const search = await props.searchParams;
   const q = postgrestSearchTerm(typeof search.q === "string" ? search.q : "");
   const status = typeof search.status === "string" ? search.status : "";
@@ -34,7 +35,7 @@ export default async function ProjectsPage(props: PageProps<"/projects">) {
   for (const [key, value] of Object.entries({ q, status, client })) if (value) exportQuery.set(key, value);
 
   return (
-    <AppShell active="projects" title="Projects" subtitle="Sales, purchases, expenses, and cash grouped by client job" action={<div className="flex gap-2">{showFinance && <><a href={`/finance/export?${exportQuery}&format=pdf`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm">PDF</a><a href={`/finance/export?${exportQuery}&format=xlsx`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm">Excel</a></>}<Link href="/projects/new" className="rounded-xl bg-navy px-4 py-2.5 text-sm font-semibold text-white">+ New Project</Link></div>}>
+    <AppShell active="projects" title="Projects" subtitle="Sales, purchases, expenses, and cash grouped by client job" action={<div className="flex gap-2">{showFinance && <><a href={`/finance/export?${exportQuery}&format=pdf`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm">PDF</a><a href={`/finance/export?${exportQuery}&format=xlsx`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm">Excel</a></>}{canManage && <Link href="/projects/new" className="rounded-xl bg-navy px-4 py-2.5 text-sm font-semibold text-white">+ New Project</Link>}</div>}>
       <form className="mb-5 flex flex-wrap gap-2"><input name="q" defaultValue={q} placeholder="Search projects…" className="min-w-56 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm" /><select name="status" defaultValue={status} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"><option value="">All statuses</option><option value="active">Active</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select><select name="client" defaultValue={client} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"><option value="">All clients</option>{(clients ?? []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><button className="rounded-xl bg-navy px-4 py-2 text-sm font-medium text-white">Apply filters</button><Link href="/projects" className="px-3 py-2 text-sm text-slate-500">Clear</Link>{pageSize !== 20 && <input type="hidden" name="size" value={pageSize} />}</form>
       <div className="overflow-x-auto rounded-2xl bg-white shadow-[var(--shadow-card)] ring-1 ring-slate-200">
         <table className="w-full min-w-[900px] text-sm">

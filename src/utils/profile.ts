@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import type { Role } from "@/utils/roles";
 
 export type { Role } from "@/utils/roles";
-export { canSeeQuotes, canSeeInvoices, canSeeProformas, canSeeReceipts, canSeeProcurement, canSeeProjects, canSeeFinance, canAccessType } from "@/utils/roles";
+export { canSeeQuotes, canSeeInvoices, canSeeProformas, canSeeReceipts, canSeeProcurement, canSeeProjects, canManageProjects, canSeeFinance, canAccessType } from "@/utils/roles";
 
 export type Profile = {
   id: string;

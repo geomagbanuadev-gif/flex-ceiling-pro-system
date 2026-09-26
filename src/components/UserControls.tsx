@@ -6,13 +6,7 @@ import { setUserRole, setUserActive } from "@/app/users/actions";
 import { Spinner } from "./Spinner";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { useToast } from "./Toast";
-
-const ROLES = [
-  { v: "super", l: "Super" },
-  { v: "staff", l: "Full staff" },
-  { v: "quotes", l: "Quotes only" },
-  { v: "invoices", l: "Invoices only" },
-];
+import { ROLE_OPTIONS } from "@/utils/roles";
 
 export function UserControls({ id, role, active }: { id: string; role: string; active: boolean }) {
   const [pending, start] = useTransition();
@@ -48,7 +42,7 @@ export function UserControls({ id, role, active }: { id: string; role: string; a
           onChange={(e) => run(() => setUserRole(id, e.target.value), "Access level updated")}
           className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-700 outline-none focus:border-navy disabled:opacity-50"
         >
-          {ROLES.map((r) => <option key={r.v} value={r.v}>{r.l}</option>)}
+          {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
         </select>
         <button
           type="button"

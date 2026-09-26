@@ -147,8 +147,8 @@ drop policy if exists expense_categories_access on expense_categories;
 drop policy if exists expenses_access on expenses;
 drop policy if exists expense_payments_access on expense_payments;
 create policy expense_categories_access on expense_categories for all to authenticated
-  using (app_user_role() = 'super') with check (app_user_role() = 'super');
+  using (app_user_role() in ('super','finance')) with check (app_user_role() in ('super','finance'));
 create policy expenses_access on expenses for all to authenticated
-  using (app_user_role() = 'super') with check (app_user_role() = 'super');
+  using (app_user_role() in ('super','finance')) with check (app_user_role() in ('super','finance'));
 create policy expense_payments_access on expense_payments for all to authenticated
-  using (app_user_role() = 'super') with check (app_user_role() = 'super');
+  using (app_user_role() in ('super','finance')) with check (app_user_role() in ('super','finance'));

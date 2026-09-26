@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { getProfile, canSeeProjects } from "@/utils/profile";
+import { getProfile, canManageProjects } from "@/utils/profile";
 
 export type ProjectPayload = {
   id?: string;
@@ -17,7 +17,7 @@ export type ProjectPayload = {
 
 export async function saveProject(payload: ProjectPayload) {
   const profile = await getProfile();
-  if (!profile || !canSeeProjects(profile.role)) throw new Error("Not authorized for projects");
+  if (!profile || !canManageProjects(profile.role)) throw new Error("Not authorized for projects");
   if (!payload.clientId) throw new Error("Choose a client");
   if (!payload.name.trim()) throw new Error("Project name is required");
   if (payload.startDate && payload.endDate && payload.endDate < payload.startDate) throw new Error("End date cannot be before start date");

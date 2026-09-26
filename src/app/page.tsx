@@ -6,6 +6,7 @@ import { TypeChip } from "@/components/TypeChip";
 import { LinkRow } from "@/components/LinkRow";
 import { fmtDate } from "@/utils/format";
 import { statusesFor } from "@/utils/docRules";
+import { canAccessType, canSeeQuotes, getProfile } from "@/utils/profile";
 
 const money = (v: number | null) => "AED " + Number(v ?? 0).toLocaleString("en-AE", { maximumFractionDigits: 0 });
 const kAed = (v: number) => (v >= 1000 ? (v / 1000).toFixed(v >= 10000 ? 0 : 1) + "k" : String(Math.round(v)));
@@ -28,7 +29,9 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
+  const [profile, supabase] = await Promise.all([getProfile(), createClient()]);
+  const canCreateQuote = Boolean(profile && canSeeQuotes(profile.role));
+  const financeOnly = profile?.role === "finance";
 
   const [clientsRes, summaryRes, monthlyRes, pipelineRes, topClientsRes, recentRes] = await Promise.all([
     supabase.from("clients").select("*", { count: "exact", head: true }),
@@ -89,7 +92,7 @@ export default async function DashboardPage() {
       active="dashboard"
       title="Dashboard"
       subtitle="Your quotes, pro formas & invoices at a glance"
-      action={<Link href="/quotes/new" className="inline-flex items-center gap-1.5 rounded-xl bg-navy px-4 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-glow)] transition hover:-translate-y-0.5 hover:bg-navy-700">+ New Quotation</Link>}
+      action={canCreateQuote ? <Link href="/quotes/new" className="inline-flex items-center gap-1.5 rounded-xl bg-navy px-4 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-glow)] transition hover:-translate-y-0.5 hover:bg-navy-700">+ New Quotation</Link> : undefined}
     >
       <div className="grid gap-4 fc-rise sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => (
@@ -164,7 +167,7 @@ export default async function DashboardPage() {
         <section className="min-w-0 lg:col-span-2">
           <div className="mb-3 flex items-center justify-between">
             <h2 className={h2}>Recent documents</h2>
-            <Link href="/quotes" className="text-sm font-medium text-navy-600 transition-colors hover:text-navy">View all →</Link>
+            {!financeOnly && <Link href="/quotes" className="text-sm font-medium text-navy-600 transition-colors hover:text-navy">View all →</Link>}
           </div>
           <div className="overflow-x-auto rounded-2xl bg-white shadow-[var(--shadow-card)] ring-1 ring-slate-200">
             <table className="w-full min-w-[520px] text-sm">
@@ -178,15 +181,15 @@ export default async function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {(recentRes.data ?? []).map((d) => (
-                  <LinkRow key={d.id} href={`/quotes/${d.id}`} className="cursor-pointer transition-colors hover:bg-slate-50/70">
-                    <td className="px-4 py-3"><Link href={`/quotes/${d.id}`} className="font-semibold text-navy hover:text-navy-600">{d.number}</Link></td>
+                {(recentRes.data ?? []).map((d) => {
+                  const canOpen = Boolean(profile && canAccessType(profile.role, d.type));
+                  const cells = <><td className="px-4 py-3">{canOpen ? <Link href={`/quotes/${d.id}`} className="font-semibold text-navy hover:text-navy-600">{d.number}</Link> : <span className="font-semibold text-slate-700">{d.number}</span>}</td>
                     <td className="px-4 py-3"><TypeChip type={d.type} /></td>
                     <td className="px-4 py-3 text-slate-500">{fmtDate(d.doc_date)}</td>
                     <td className="px-4 py-3 text-slate-700">{d.client_name || "—"}</td>
-                    <td className="px-4 py-3 text-right font-semibold tabular-nums text-slate-900">{money(d.grand_total)}</td>
-                  </LinkRow>
-                ))}
+                    <td className="px-4 py-3 text-right font-semibold tabular-nums text-slate-900">{money(d.grand_total)}</td></>;
+                  return canOpen ? <LinkRow key={d.id} href={`/quotes/${d.id}`} className="cursor-pointer transition-colors hover:bg-slate-50/70">{cells}</LinkRow> : <tr key={d.id}>{cells}</tr>;
+                })}
                 {(!recentRes.data || recentRes.data.length === 0) && (
                   <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-500">No documents found.</td></tr>
                 )}

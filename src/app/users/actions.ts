@@ -4,8 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { getProfile } from "@/utils/profile";
-
-const ROLES = ["super", "staff", "quotes", "invoices"];
+import { isRole } from "@/utils/roles";
 
 async function requireSuper() {
   const me = await getProfile();
@@ -17,7 +16,7 @@ export async function createUser(email: string, password: string, role: string) 
   const mail = email.trim().toLowerCase();
   if (!mail || !password) throw new Error("Email and password are required");
   if (password.length < 8) throw new Error("Password must be at least 8 characters");
-  if (!ROLES.includes(role)) throw new Error("Invalid access level");
+  if (!isRole(role)) throw new Error("Invalid access level");
 
   const admin = createAdminClient();
   const { data, error } = await admin.auth.admin.createUser({
@@ -38,7 +37,7 @@ export async function createUser(email: string, password: string, role: string) 
 
 export async function setUserRole(userId: string, role: string) {
   await requireSuper();
-  if (!ROLES.includes(role)) throw new Error("Invalid role");
+  if (!isRole(role)) throw new Error("Invalid role");
   const supabase = await createClient();
   const { error } = await supabase.from("profiles").update({ role }).eq("id", userId);
   if (error) throw new Error(error.message);

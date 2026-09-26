@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { canSeeQuotes, canSeeInvoices, canSeeProformas, canSeeReceipts, canSeeProjects, canSeeFinance, canAccessType, type Role } from "./roles";
+import { canSeeQuotes, canSeeInvoices, canSeeProformas, canSeeReceipts, canSeeProjects, canManageProjects, canSeeFinance, canAccessType, type Role } from "./roles";
 
-const ROLES: Role[] = ["super", "staff", "quotes", "invoices"];
+const ROLES: Role[] = ["super", "staff", "finance", "quotes", "invoices"];
 
 describe("role access helpers", () => {
   it("quotes visibility", () => {
@@ -16,9 +16,10 @@ describe("role access helpers", () => {
   it("receipt visibility matches invoices group", () => {
     expect(ROLES.filter(canSeeReceipts)).toEqual(["super", "staff", "invoices"]);
   });
-  it("projects are operational while finance is super-only", () => {
-    expect(ROLES.filter(canSeeProjects)).toEqual(["super", "staff"]);
-    expect(ROLES.filter(canSeeFinance)).toEqual(["super"]);
+  it("finance can view projects without managing them", () => {
+    expect(ROLES.filter(canSeeProjects)).toEqual(["super", "staff", "finance"]);
+    expect(ROLES.filter(canManageProjects)).toEqual(["super", "staff"]);
+    expect(ROLES.filter(canSeeFinance)).toEqual(["super", "finance"]);
   });
 });
 
@@ -42,5 +43,9 @@ describe("canAccessType matrix", () => {
     expect(canAccessType("invoices", "invoice")).toBe(true);
     expect(canAccessType("invoices", "proforma")).toBe(true);
     expect(canAccessType("invoices", "receipt")).toBe(true);
+  });
+
+  it("finance role cannot edit document types", () => {
+    for (const type of ["quote", "invoice", "proforma", "receipt"] as const) expect(canAccessType("finance", type)).toBe(false);
   });
 });

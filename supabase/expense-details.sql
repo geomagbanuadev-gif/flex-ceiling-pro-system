@@ -32,7 +32,7 @@ create index if not exists expense_items_expense_idx on expense_items (expense_i
 alter table expense_items enable row level security;
 drop policy if exists expense_items_access on expense_items;
 create policy expense_items_access on expense_items for all to authenticated
-  using (app_user_role() = 'super') with check (app_user_role() = 'super');
+  using (app_user_role() in ('super','finance')) with check (app_user_role() in ('super','finance'));
 
 create or replace function validate_expense_payment_target() returns trigger
 language plpgsql set search_path = public as $$
@@ -56,7 +56,7 @@ declare
   v_po_supplier_id uuid;
   v_po_project_id uuid;
 begin
-  if app_user_role() is distinct from 'super' then raise exception 'Not authorized for finance'; end if;
+  if coalesce(app_user_role(), '') not in ('super','finance') then raise exception 'Not authorized for finance'; end if;
   if jsonb_typeof(coalesce(p_items, '[]'::jsonb)) <> 'array' then raise exception 'Expense items must be an array'; end if;
 
   if v_purchase_order_id is not null then
@@ -149,5 +149,5 @@ on conflict (id) do update set public = false, file_size_limit = excluded.file_s
 
 drop policy if exists expense_attachments_access on storage.objects;
 create policy expense_attachments_access on storage.objects for all to authenticated
-  using (bucket_id = 'expense-attachments' and public.app_user_role() = 'super')
-  with check (bucket_id = 'expense-attachments' and public.app_user_role() = 'super');
+  using (bucket_id = 'expense-attachments' and public.app_user_role() in ('super','finance'))
+  with check (bucket_id = 'expense-attachments' and public.app_user_role() in ('super','finance'));

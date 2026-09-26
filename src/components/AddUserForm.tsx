@@ -5,13 +5,7 @@ import { useRouter, unstable_rethrow } from "next/navigation";
 import { createUser } from "@/app/users/actions";
 import { Spinner } from "./Spinner";
 import { useToast } from "./Toast";
-
-const ROLES = [
-  { v: "staff", l: "Full staff" },
-  { v: "quotes", l: "Quotes only" },
-  { v: "invoices", l: "Invoices only" },
-  { v: "super", l: "Super" },
-];
+import { ROLE_OPTIONS, roleLabel } from "@/utils/roles";
 
 // Strong, readable temp password (no ambiguous chars like O/0, l/1).
 function generatePassword(len = 14) {
@@ -38,7 +32,7 @@ export function AddUserForm() {
     setMsg(null);
     const mail = email.trim().toLowerCase();
     const usedPw = password;
-    const levelLabel = ROLES.find((r) => r.v === role)?.l;
+    const levelLabel = roleLabel(role);
     start(async () => {
       try {
         await createUser(email, password, role);
@@ -90,7 +84,7 @@ export function AddUserForm() {
         <div>
           <label className={lbl}>Access level (pages they can use)</label>
           <select className={inp} value={role} onChange={(e) => setRole(e.target.value)}>
-            {ROLES.map((r) => <option key={r.v} value={r.v}>{r.l}</option>)}
+            {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
           </select>
         </div>
         <div className="flex items-end">
@@ -100,7 +94,7 @@ export function AddUserForm() {
         </div>
       </div>
       <p className="mt-3 text-xs text-slate-400">
-        Quotes only / Invoices only restrict to that document type. Full staff sees all documents. Super also manages settings &amp; users.
+        Finance manages expenses and finance reports without user/settings access. Quotes only / Invoices only restrict to that document type. Super manages everything.
       </p>
       {msg && <p className={`mt-2 text-sm ${msg.ok ? "text-green-600" : "text-red-600"}`}>{msg.text}</p>}
     </form>
