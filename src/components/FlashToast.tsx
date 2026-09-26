@@ -14,6 +14,9 @@ const MESSAGES: Record<string, string> = {
   duplicated: "Duplicated — ready to edit",
   "client-saved": "Client saved",
   "supplier-saved": "Supplier saved",
+  "review-saved": "Transaction review saved",
+  linked: "Bank transaction linked",
+  "rolled-back": "Statement import rolled back",
 };
 
 export function FlashToast() {

@@ -21,12 +21,13 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
   const { data: doc } = await supabase.from("documents").select("*").eq("id", id).single();
   if (!doc) notFound();
   const { data: items } = await supabase.from("document_items").select("*").eq("document_id", id).order("sort_order");
-  const [{ data: project }, { data: appliedInvoice }, { data: allocatedReceipts }, { data: sourceDocument }, { data: generatedDocuments }] = await Promise.all([
+  const [{ data: project }, { data: appliedInvoice }, { data: allocatedReceipts }, { data: sourceDocument }, { data: generatedDocuments }, { data: bankAllocation }] = await Promise.all([
     doc.project_id ? supabase.from("projects").select("id, name, code").eq("id", doc.project_id).maybeSingle() : Promise.resolve({ data: null }),
     doc.type === "receipt" && doc.applies_to_invoice_id ? supabase.from("documents").select("id, number").eq("id", doc.applies_to_invoice_id).maybeSingle() : Promise.resolve({ data: null }),
     doc.type === "invoice" ? supabase.from("documents").select("grand_total").eq("type", "receipt").eq("status", "issued").eq("applies_to_invoice_id", id) : Promise.resolve({ data: [] }),
     doc.converted_from ? supabase.from("documents").select("id, number, type").eq("id", doc.converted_from).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from("documents").select("id, number, type, status").eq("converted_from", id).order("created_at", { ascending: false }),
+    doc.type === "receipt" ? supabase.from("bank_transaction_allocations").select("bank_transactions(id, booking_date, amount)").eq("receipt_id", id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const received = (allocatedReceipts ?? []).reduce((sum, receipt) => sum + (Number(receipt.grand_total) || 0), 0);
   const invoiceBalance = outstandingBalance(doc.grand_total, received);
@@ -98,6 +99,7 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
             {project && <p className="mt-2">Project: <Link href={`/projects/${project.id}`} className="font-medium text-navy">{project.code ? `${project.code} — ` : ""}{project.name}</Link></p>}
             {doc.type === "invoice" && <p className="mt-1 text-slate-500">Payment due: {doc.due_date ? fmtDate(doc.due_date) : "Due date not set"}</p>}
             {appliedInvoice && <p className="mt-1">Applied to <Link href={`/quotes/${appliedInvoice.id}`} className="font-medium text-navy">{appliedInvoice.number}</Link></p>}
+            {bankAllocation?.bank_transactions && (() => { const bank = Array.isArray(bankAllocation.bank_transactions) ? bankAllocation.bank_transactions[0] : bankAllocation.bank_transactions; return bank ? <p className="mt-1">Bank evidence: <Link href={`/bank-transactions/${bank.id}`} className="font-medium text-navy">{fmtDate(bank.booking_date)} · {money(bank.amount)}</Link></p> : null; })()}
             {doc.converted_from && (doc.type === "invoice" || doc.type === "proforma" || doc.type === "receipt") && (
               <p className="mt-2 text-xs text-slate-500">Generated from <Link href={`/quotes/${doc.converted_from}`} className="font-medium text-navy-600 hover:underline">{sourceDocument?.number ?? `#${doc.converted_from.slice(0, 8)}`}</Link></p>
             )}

@@ -56,3 +56,12 @@ docs/*_SPEC.md
 
 # claude code local overrides
 .claude/settings.local.json
+
+# Python extraction cache
+__pycache__/
+*.pyc
+normalized-bank-statements.json
+
+# Bank migration scripts are applied directly in Supabase and kept local
+/supabase/bank-transactions.sql
+/supabase/bank-transactions-verify.sql

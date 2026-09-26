@@ -22,6 +22,9 @@ export default async function PoDetailPage(props: PageProps<"/purchase-orders/[i
     supabase.from("purchase_payments").select("*").eq("purchase_order_id", id).order("payment_date", { ascending: false }),
   ]);
   const { data: project } = po.project_id ? await supabase.from("projects").select("id, name, code").eq("id", po.project_id).maybeSingle() : { data: null };
+  const paymentIds = (payments ?? []).map((payment) => payment.id);
+  const { data: bankAllocations } = paymentIds.length ? await supabase.from("bank_transaction_allocations").select("purchase_payment_id, bank_transaction_id").in("purchase_payment_id", paymentIds) : { data: [] };
+  const bankLinks = Object.fromEntries((bankAllocations ?? []).map((allocation) => [allocation.purchase_payment_id, allocation.bank_transaction_id]));
 
   const auditIds = [po.created_by, po.updated_by].filter(Boolean);
   const { data: profs } = auditIds.length ? await supabase.from("profiles").select("id, email").in("id", auditIds) : { data: [] as { id: string; email: string }[] };
@@ -87,7 +90,7 @@ export default async function PoDetailPage(props: PageProps<"/purchase-orders/[i
           </div>
           {po.notes ? <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">{po.notes}</p> : null}
 
-          <PaymentLog poId={id} payments={payments ?? []} grandTotal={Number(po.grand_total) || 0} />
+          <PaymentLog poId={id} payments={payments ?? []} grandTotal={Number(po.grand_total) || 0} bankLinks={bankLinks} />
 
           <p className="text-xs text-slate-500">
             {emailOf(po.created_by) ? <>Created by {emailOf(po.created_by)}</> : ""}

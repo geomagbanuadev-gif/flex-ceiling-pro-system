@@ -14,6 +14,7 @@ const NAV: NavDef[] = [
   { href: "/purchase-orders", label: "Purchase Orders", key: "purchase-orders", group: "procurement", need: "procurement" },
   { href: "/projects", label: "Projects", key: "projects", group: "operations", need: "projects" },
   { href: "/expenses", label: "Expenses", key: "expenses", group: "finance", need: "finance" },
+  { href: "/bank-transactions", label: "Bank Transactions", key: "bank-transactions", group: "finance", need: "finance" },
   { href: "/finance", label: "Finance", key: "finance", group: "finance", need: "finance" },
   { href: "/clients", label: "Clients", key: "clients", group: "manage" },
   { href: "/settings", label: "Settings", key: "settings", group: "manage", superOnly: true },

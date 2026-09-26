@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter, unstable_rethrow } from "next/navigation";
 import { addPurchasePayment, deletePurchasePayment } from "@/app/purchase-orders/actions";
 import { useToast } from "./Toast";
@@ -9,7 +10,7 @@ import { balanceOwed, paymentStatus } from "@/utils/procurement";
 type Payment = { id: string; payment_date: string | null; method: string | null; reference: string | null; amount: number | null; notes: string | null };
 const money = (v: number | null | undefined) => "AED " + Number(v ?? 0).toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export function PaymentLog({ poId, payments, grandTotal }: { poId: string; payments: Payment[]; grandTotal: number }) {
+export function PaymentLog({ poId, payments, grandTotal, bankLinks = {} }: { poId: string; payments: Payment[]; grandTotal: number; bankLinks?: Record<string, string> }) {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
@@ -64,6 +65,7 @@ export function PaymentLog({ poId, payments, grandTotal }: { poId: string; payme
                 <span className="font-medium text-slate-800">{money(p.amount)}</span>
                 <span className="ml-2 text-xs capitalize text-slate-500">{p.method}{p.reference ? ` · ${p.reference}` : ""}</span>
                 <span className="ml-2 text-xs text-slate-400">{p.payment_date}</span>
+                {bankLinks[p.id] && <Link href={`/bank-transactions/${bankLinks[p.id]}`} className="ml-2 text-xs font-medium text-navy hover:underline">Bank evidence</Link>}
               </div>
               <button type="button" onClick={() => remove(p.id)} disabled={pending} className="text-xs text-red-500 hover:underline disabled:opacity-50">Remove</button>
             </div>
