@@ -2,8 +2,9 @@ import type { NextRequest } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { getProfile, canSeeFinance } from "@/utils/profile";
 import { fmtDate, money2 } from "@/utils/format";
-import { loadFinanceWorkspace } from "../data";
+import { loadExpenseReport, loadPayables, loadProjectReport, loadReceivables } from "../data";
 import { financeReportFilename, renderFinanceReportExcel, renderFinanceReportPdf, type FinanceExportData } from "@/utils/financeReportFiles";
+import { dateQueryParam, uuidQueryParam } from "@/utils/query";
 
 export const runtime = "nodejs";
 
@@ -13,12 +14,21 @@ export async function GET(request: NextRequest) {
   const kind = request.nextUrl.searchParams.get("report");
   const format = request.nextUrl.searchParams.get("format") ?? "pdf";
   if (!["receivables", "payables", "expenses", "projects"].includes(kind ?? "") || !["pdf", "xlsx"].includes(format)) return new Response("Invalid report", { status: 400 });
-  const { receivables, payables, expenseRows, projectRows } = await loadFinanceWorkspace();
   const state = request.nextUrl.searchParams.get("state") ?? "";
   const aging = request.nextUrl.searchParams.get("aging") ?? "";
   const source = request.nextUrl.searchParams.get("source") ?? "";
-  const receivableRows = receivables.filter((row) => (!state || row.state === state) && (!aging || row.aging === aging));
-  const payableRows = payables.filter((row) => (!state || row.state === state) && (!aging || row.aging === aging) && (!source || row.source === source));
+  const q = request.nextUrl.searchParams.get("q") ?? "";
+  const status = request.nextUrl.searchParams.get("status") ?? "";
+  const category = uuidQueryParam(request.nextUrl.searchParams.get("category"));
+  const supplier = uuidQueryParam(request.nextUrl.searchParams.get("supplier"));
+  const project = uuidQueryParam(request.nextUrl.searchParams.get("project"));
+  const client = uuidQueryParam(request.nextUrl.searchParams.get("client"));
+  const from = dateQueryParam(request.nextUrl.searchParams.get("from"));
+  const to = dateQueryParam(request.nextUrl.searchParams.get("to"));
+  const receivableRows = kind === "receivables" ? (await loadReceivables({ state, aging })).rows : [];
+  const payableRows = kind === "payables" ? (await loadPayables({ state, aging, source })).rows : [];
+  const expenseRows = kind === "expenses" ? await loadExpenseReport({ q, status, category, supplier, project, from, to }) : [];
+  const projectRows = kind === "projects" ? await loadProjectReport({ q, status, client }) : [];
   const supabase = await createClient();
   const { data: settings } = await supabase.from("company_settings").select("legal_name").eq("id", 1).maybeSingle();
   const companyName = settings?.legal_name || "FLEXCEILING PRO SOLUTIONS FZ LLC";

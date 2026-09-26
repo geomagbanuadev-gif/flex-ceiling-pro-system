@@ -6,7 +6,6 @@ import { TypeChip } from "@/components/TypeChip";
 import { LinkRow } from "@/components/LinkRow";
 import { fmtDate } from "@/utils/format";
 import { statusesFor } from "@/utils/docRules";
-import { outstandingBalance, receivedForInvoice } from "@/utils/finance";
 
 const money = (v: number | null) => "AED " + Number(v ?? 0).toLocaleString("en-AE", { maximumFractionDigits: 0 });
 const kAed = (v: number) => (v >= 1000 ? (v / 1000).toFixed(v >= 10000 ? 0 : 1) + "k" : String(Math.round(v)));
@@ -31,38 +30,26 @@ const STATUS_COLORS: Record<string, string> = {
 export default async function DashboardPage() {
   const supabase = await createClient();
 
-  const [clientsRes, allRes, recentRes] = await Promise.all([
+  const [clientsRes, summaryRes, monthlyRes, pipelineRes, topClientsRes, recentRes] = await Promise.all([
     supabase.from("clients").select("*", { count: "exact", head: true }),
-    supabase.from("documents").select("*"),
+    supabase.rpc("dashboard_summary"),
+    supabase.from("dashboard_monthly_sales").select("month, total"),
+    supabase.from("dashboard_quote_pipeline").select("status, count"),
+    supabase.from("dashboard_top_clients").select("client, total").order("total", { ascending: false }),
     supabase
       .from("documents")
       .select("id, number, type, doc_date, client_name, grand_total, status")
       .order("doc_date", { ascending: false, nullsFirst: false })
       .limit(8),
   ]);
-
-  const all = allRes.data ?? [];
-  const invoices = all.filter((d) => d.type === "invoice");
-  const issuedInvoices = invoices.filter((d) => d.status === "sent" || d.status === "paid");
-  const issuedReceipts = all.filter((d) => d.type === "receipt" && d.status === "issued");
-  const quotes = all.filter((d) => d.type === "quote");
-  const proformas = all.filter((d) => d.type === "proforma");
-  const sum = (arr: typeof all) => arr.reduce((s, d) => s + (Number(d.grand_total) || 0), 0);
+  const readError = [summaryRes, monthlyRes, pipelineRes, topClientsRes].find((result) => result.error)?.error;
+  if (readError) throw new Error(`Dashboard requires read-performance.sql: ${readError.message}`);
+  const summary = summaryRes.data as Record<string, number>;
 
   const now = new Date();
-  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
   const monthName = now.toLocaleString("en-US", { month: "long" });
 
-  const invoicedTotal = sum(issuedInvoices);
-  const invoiceBalance = (invoice: (typeof invoices)[number]) => {
-    const received = receivedForInvoice(invoice.id, issuedReceipts);
-    return invoice.status === "paid" && received === 0 ? 0 : outstandingBalance(invoice.grand_total, received);
-  };
-  const outstandingRows = issuedInvoices.filter((invoice) => invoiceBalance(invoice) > 0);
-  const outstanding = outstandingRows.reduce((total, invoice) => total + invoiceBalance(invoice), 0);
-  const thisMonth = sum(issuedInvoices.filter((d) => (d.doc_date ?? "") >= monthStart));
-  const acceptedCount = quotes.filter((d) => d.status === "won" || d.status === "ongoing").length;
-  const conversion = quotes.length ? Math.round((acceptedCount / quotes.length) * 100) : 0;
+  const conversion = summary.quoteCount ? Math.round((summary.acceptedCount / summary.quoteCount) * 100) : 0;
 
   // last 6 months invoiced
   const months: { key: string; label: string }[] = [];
@@ -70,29 +57,28 @@ export default async function DashboardPage() {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     months.push({ key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, label: d.toLocaleString("en-US", { month: "short" }) });
   }
-  const monthly = months.map((m) => ({ ...m, total: sum(issuedInvoices.filter((d) => (d.doc_date ?? "").slice(0, 7) === m.key)) }));
+  const monthlyValues = new Map((monthlyRes.data ?? []).map((row) => [row.month, Number(row.total) || 0]));
+  const monthly = months.map((m) => ({ ...m, total: monthlyValues.get(m.key) ?? 0 }));
   const monthlyMax = Math.max(1, ...monthly.map((m) => m.total));
 
   // quote pipeline by status
   const pipeline: Record<string, number> = {};
-  for (const q of quotes) pipeline[q.status ?? "draft"] = (pipeline[q.status ?? "draft"] || 0) + 1;
+  for (const row of pipelineRes.data ?? []) {
+    const status = row.status ?? "draft";
+    pipeline[status] = (pipeline[status] ?? 0) + (Number(row.count) || 0);
+  }
   const pipelineMax = Math.max(1, ...Object.values(pipeline));
   const pipelineOrder = [...statusesFor("quote"), "imported"].filter((s) => pipeline[s]);
 
   // top clients by total business value
-  const byClient: Record<string, number> = {};
-  for (const d of issuedInvoices) {
-    const n = d.client_name || "—";
-    byClient[n] = (byClient[n] || 0) + (Number(d.grand_total) || 0);
-  }
-  const topClients = Object.entries(byClient).map(([name, total]) => ({ name, total })).filter((c) => c.total > 0).sort((a, b) => b.total - a.total).slice(0, 6);
+  const topClients = (topClientsRes.data ?? []).map((row) => ({ name: row.client, total: Number(row.total) || 0 }));
   const topMax = Math.max(1, ...topClients.map((c) => c.total));
 
   const kpis = [
-    { label: "Outstanding", value: money(outstanding), tint: "bg-gold/10 text-gold", icon: I.wallet, sub: `${outstandingRows.length} invoices with balance` },
-    { label: "Invoiced (all time)", value: money(invoicedTotal), tint: "bg-navy/10 text-navy", icon: I.doc, sub: `${issuedInvoices.length} issued tax invoices` },
-    { label: `Invoiced in ${monthName}`, value: money(thisMonth), tint: "bg-emerald-500/10 text-emerald-600", icon: I.calendar, sub: "current month" },
-    { label: "Quote conversion", value: `${conversion}%`, tint: "bg-blue-500/10 text-blue-600", icon: I.trend, sub: `${acceptedCount} of ${quotes.length} won or ongoing` },
+    { label: "Outstanding", value: money(summary.outstanding), tint: "bg-gold/10 text-gold", icon: I.wallet, sub: `${summary.outstandingCount} invoices with balance` },
+    { label: "Invoiced (all time)", value: money(summary.invoicedTotal), tint: "bg-navy/10 text-navy", icon: I.doc, sub: `${summary.invoiceCount} issued tax invoices` },
+    { label: `Invoiced in ${monthName}`, value: money(summary.monthTotal), tint: "bg-emerald-500/10 text-emerald-600", icon: I.calendar, sub: "current month" },
+    { label: "Quote conversion", value: `${conversion}%`, tint: "bg-blue-500/10 text-blue-600", icon: I.trend, sub: `${summary.acceptedCount} of ${summary.quoteCount} won or ongoing` },
   ];
 
   const card = "min-w-0 rounded-2xl bg-white p-5 shadow-[var(--shadow-card)] ring-1 ring-slate-200";
@@ -148,9 +134,9 @@ export default async function DashboardPage() {
           </div>
           <div className="mt-5 grid grid-cols-4 gap-1 border-t border-slate-100 pt-4 text-center text-xs">
             <Link href="/clients" className="rounded-lg py-1.5 transition-colors hover:bg-slate-50"><span className="block text-lg font-semibold text-slate-900">{clientsRes.count ?? 0}</span><span className="text-slate-500">Clients</span></Link>
-            <Link href="/quotes?type=quote" className="rounded-lg py-1.5 transition-colors hover:bg-slate-50"><span className="block text-lg font-semibold text-slate-900">{quotes.length}</span><span className="text-slate-500">Quotes</span></Link>
-            <Link href="/quotes?type=proforma" className="rounded-lg py-1.5 transition-colors hover:bg-slate-50"><span className="block text-lg font-semibold text-slate-900">{proformas.length}</span><span className="text-slate-500">Pro Forma</span></Link>
-            <Link href="/quotes?type=invoice" className="rounded-lg py-1.5 transition-colors hover:bg-slate-50"><span className="block text-lg font-semibold text-slate-900">{invoices.length}</span><span className="text-slate-500">Invoices</span></Link>
+            <Link href="/quotes?type=quote" className="rounded-lg py-1.5 transition-colors hover:bg-slate-50"><span className="block text-lg font-semibold text-slate-900">{summary.quoteCount}</span><span className="text-slate-500">Quotes</span></Link>
+            <Link href="/quotes?type=proforma" className="rounded-lg py-1.5 transition-colors hover:bg-slate-50"><span className="block text-lg font-semibold text-slate-900">{summary.proformaCount}</span><span className="text-slate-500">Pro Forma</span></Link>
+            <Link href="/quotes?type=invoice" className="rounded-lg py-1.5 transition-colors hover:bg-slate-50"><span className="block text-lg font-semibold text-slate-900">{summary.invoiceCount}</span><span className="text-slate-500">Invoices</span></Link>
           </div>
         </section>
       </div>

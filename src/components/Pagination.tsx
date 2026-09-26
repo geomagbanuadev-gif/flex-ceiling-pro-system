@@ -11,7 +11,6 @@ export function Pagination({ page, pageSize, total }: { page: number; pageSize: 
   const sp = useSearchParams();
   const [pending, start] = useTransition();
 
-  const sizes = PAGE_SIZES.includes(pageSize) ? PAGE_SIZES : [...PAGE_SIZES, pageSize].sort((a, b) => a - b);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const fromN = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const toN = Math.min(page * pageSize, total);
