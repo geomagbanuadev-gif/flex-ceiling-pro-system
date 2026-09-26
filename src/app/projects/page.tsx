@@ -18,7 +18,7 @@ export default async function ProjectsPage() {
   const [{ data: documents }, { data: purchaseOrders }, { data: expenses }] = ids.length ? await Promise.all([
     supabase.from("documents").select("id, type, status, project_id, subtotal, discount, grand_total, applies_to_invoice_id").in("project_id", ids),
     supabase.from("purchase_orders").select("id, status, project_id, subtotal, discount, grand_total").in("project_id", ids),
-    showFinance ? supabase.from("expenses").select("id, status, project_id, subtotal, vat_amount, vat_recoverable, grand_total").in("project_id", ids) : Promise.resolve({ data: [] }),
+    showFinance ? supabase.from("expenses").select("id, status, project_id, purchase_order_id, subtotal, vat_amount, vat_recoverable, grand_total").in("project_id", ids) : Promise.resolve({ data: [] }),
   ]) : [{ data: [] }, { data: [] }, { data: [] }];
   const poIds = (purchaseOrders ?? []).map((po) => po.id);
   const expenseIds = (expenses ?? []).map((expense) => expense.id);

@@ -16,7 +16,7 @@ export async function loadFinanceWorkspace(filters: { from?: string; to?: string
     supabase.from("documents").select("id, number, type, status, doc_date, due_date, client_id, client_name, project_id, subtotal, discount, grand_total, applies_to_invoice_id"),
     supabase.from("purchase_orders").select("id, number, status, po_date, due_date, supplier_name, project_id, subtotal, discount, grand_total"),
     supabase.from("purchase_payments").select("purchase_order_id, payment_date, amount"),
-    supabase.from("expenses").select("id, expense_date, due_date, description, payee_name, status, project_id, subtotal, vat_amount, vat_recoverable, grand_total"),
+    supabase.from("expenses").select("id, expense_date, due_date, description, payee_name, status, project_id, purchase_order_id, subtotal, vat_amount, vat_recoverable, grand_total"),
     supabase.from("expense_payments").select("expense_id, payment_date, amount"),
     supabase.from("projects").select("id, name, clients(name)"),
   ]);
@@ -44,14 +44,15 @@ export async function loadFinanceWorkspace(filters: { from?: string; to?: string
     const paid = paidForPurchaseOrder(po.id, purchasePayments);
     return { id: po.id, href: `/purchase-orders/${po.id}`, source: "Purchase order", number: po.number, payee: po.supplier_name || "—", project: projectName.get(po.project_id) ?? "Unassigned", date: po.po_date, dueDate: po.due_date, total: roundMoney(po.grand_total), paid, balance: outstandingBalance(po.grand_total, paid), state: paymentState(po.grand_total, paid), aging: agingBucket(po.due_date, today) };
   });
-  const expensePayables: PayableRow[] = expenses.filter((expense) => expense.status === "posted").map((expense) => {
+  const expensePayables: PayableRow[] = expenses.filter((expense) => expense.status === "posted" && !expense.purchase_order_id).map((expense) => {
     const paid = paidForExpense(expense.id, expensePayments);
     return { id: expense.id, href: `/expenses/${expense.id}`, source: "Expense", number: expense.description, payee: expense.payee_name || "—", project: projectName.get(expense.project_id) ?? "Unassigned", date: expense.expense_date, dueDate: expense.due_date, total: roundMoney(expense.grand_total), paid, balance: outstandingBalance(expense.grand_total, paid), state: paymentState(expense.grand_total, paid), aging: agingBucket(expense.due_date, today) };
   });
   const payables = [...poPayables, ...expensePayables].sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
   const expenseRows: ExpenseReportRow[] = expenses.map((expense) => {
-    const paid = paidForExpense(expense.id, expensePayments);
-    return { id: expense.id, date: expense.expense_date, description: expense.description, payee: expense.payee_name || "—", project: projectName.get(expense.project_id) ?? "Unassigned", status: expense.status || "draft", total: roundMoney(expense.grand_total), paid, balance: outstandingBalance(expense.grand_total, paid) };
+    const linkedToPurchaseOrder = Boolean(expense.purchase_order_id);
+    const paid = linkedToPurchaseOrder ? 0 : paidForExpense(expense.id, expensePayments);
+    return { id: expense.id, date: expense.expense_date, description: expense.description, payee: expense.payee_name || "—", project: projectName.get(expense.project_id) ?? "Unassigned", status: `${expense.status || "draft"}${linkedToPurchaseOrder ? " · PO-linked" : ""}`, total: roundMoney(expense.grand_total), paid, balance: linkedToPurchaseOrder ? 0 : outstandingBalance(expense.grand_total, paid) };
   });
   const projectRows: ProjectReportRow[] = projects.map((project) => {
     const docs = documents.filter((row) => row.project_id === project.id);

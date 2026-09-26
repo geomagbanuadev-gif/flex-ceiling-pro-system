@@ -38,6 +38,7 @@ export type FinanceExpense = {
   vat_amount: number | null;
   vat_recoverable: boolean | null;
   grand_total: number | null;
+  purchase_order_id?: string | null;
 };
 
 export const roundMoney = (value: number | null | undefined) =>
@@ -132,7 +133,9 @@ export function calculateFinanceTotals(input: {
   const invoices = input.invoices.filter(isFinanceInvoice);
   const receipts = input.receipts.filter(isIssuedReceipt);
   const purchaseOrders = input.purchaseOrders.filter(isActivePurchaseOrder);
-  const expenses = input.expenses.filter(isPostedExpense);
+  // A PO-linked expense is supporting invoice detail. The PO remains the
+  // accounting source so the same supplier cost is never counted twice.
+  const expenses = input.expenses.filter((expense) => isPostedExpense(expense) && !expense.purchase_order_id);
 
   const netSales = sumMoney(invoices.map(invoiceNetSales));
   const moneyReceived = sumMoney(receipts.map((receipt) => receipt.grand_total));

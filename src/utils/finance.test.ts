@@ -85,4 +85,16 @@ describe("calculateFinanceTotals", () => {
     });
     expect(totals).toEqual({ netSales: 0, moneyReceived: 0, receivables: 0, committedCosts: 0, moneyPaid: 0, payables: 0, projectMargin: 0, netCash: 0 });
   });
+
+  it("does not count a PO-linked supplier invoice as a second cost", () => {
+    const totals = calculateFinanceTotals({
+      invoices: [], receipts: [],
+      purchaseOrders: [{ id: "po", status: "ordered", subtotal: 1000, discount: 0, grand_total: 1050 }],
+      purchasePayments: [],
+      expenses: [{ id: "expense", status: "posted", subtotal: 1000, vat_amount: 50, vat_recoverable: true, grand_total: 1050, purchase_order_id: "po" }],
+      expensePayments: [],
+    });
+    expect(totals.committedCosts).toBe(1000);
+    expect(totals.payables).toBe(1050);
+  });
 });

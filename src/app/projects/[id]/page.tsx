@@ -17,7 +17,7 @@ export default async function ProjectDetailPage(props: PageProps<"/projects/[id]
     supabase.from("clients").select("id, name").order("name"),
     supabase.from("documents").select("id, number, type, status, doc_date, client_name, subtotal, discount, grand_total, applies_to_invoice_id").eq("project_id", id).order("doc_date", { ascending: false }),
     supabase.from("purchase_orders").select("id, number, status, po_date, supplier_name, subtotal, discount, grand_total").eq("project_id", id).order("po_date", { ascending: false }),
-    supabase.from("expenses").select("id, expense_date, description, status, subtotal, vat_amount, vat_recoverable, grand_total").eq("project_id", id).order("expense_date", { ascending: false }),
+    supabase.from("expenses").select("id, expense_date, description, status, purchase_order_id, subtotal, vat_amount, vat_recoverable, grand_total").eq("project_id", id).order("expense_date", { ascending: false }),
   ]);
   if (!project) notFound();
   const poIds = (purchaseOrders ?? []).map((po) => po.id);

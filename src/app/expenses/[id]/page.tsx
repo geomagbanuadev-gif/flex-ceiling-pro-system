@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { ExpensePaymentLog } from "@/components/ExpensePaymentLog";
+import { ExpenseAttachment } from "@/components/ExpenseAttachment";
 import { createClient } from "@/utils/supabase/server";
 import { getProfile, canSeeFinance } from "@/utils/profile";
 import { deleteExpense } from "@/app/expenses/actions";
@@ -12,17 +13,39 @@ export default async function ExpenseDetailPage(props: PageProps<"/expenses/[id]
   if (!profile || !canSeeFinance(profile.role)) redirect("/");
   const { id } = await props.params;
   const supabase = await createClient();
-  const [{ data: expense }, { data: payments }, { data: categories }, { data: clients }, { data: suppliers }, { data: projects }] = await Promise.all([
+  const [{ data: expense }, { data: items }, { data: payments }, { data: categories }, { data: clients }, { data: suppliers }, { data: projects }, { data: purchaseOrders }] = await Promise.all([
     supabase.from("expenses").select("*").eq("id", id).maybeSingle(),
+    supabase.from("expense_items").select("*").eq("expense_id", id).order("sort_order"),
     supabase.from("expense_payments").select("*").eq("expense_id", id).order("payment_date", { ascending: false }),
     supabase.from("expense_categories").select("id, name").eq("active", true).order("sort_order"),
     supabase.from("clients").select("id, name").order("name"),
     supabase.from("suppliers").select("id, name").eq("active", true).order("name"),
     supabase.from("projects").select("id, name, code, client_id").neq("status", "cancelled").order("name"),
+    supabase.from("purchase_orders").select("id, number, supplier_id, project_id, status").order("po_date", { ascending: false }),
   ]);
   if (!expense) notFound();
-  const initial = { id: expense.id, expenseDate: expense.expense_date, dueDate: expense.due_date ?? "", categoryId: expense.category_id, description: expense.description, payeeName: expense.payee_name ?? "", supplierId: expense.supplier_id, clientId: expense.client_id, projectId: expense.project_id, status: expense.status, subtotal: Number(expense.subtotal) || 0, vatAmount: Number(expense.vat_amount) || 0, vatRecoverable: Boolean(expense.vat_recoverable), reference: expense.reference ?? "", notes: expense.notes ?? "" };
+  const initial = {
+    id: expense.id,
+    expenseDate: expense.expense_date,
+    dueDate: expense.due_date ?? "",
+    categoryId: expense.category_id,
+    description: expense.description,
+    payeeName: expense.payee_name ?? "",
+    supplierId: expense.supplier_id,
+    clientId: expense.client_id,
+    projectId: expense.project_id,
+    purchaseOrderId: expense.purchase_order_id,
+    supplierInvoiceNumber: expense.supplier_invoice_number ?? "",
+    status: expense.status,
+    subtotal: Number(expense.subtotal) || 0,
+    vatAmount: Number(expense.vat_amount) || 0,
+    vatRecoverable: Boolean(expense.vat_recoverable),
+    reference: expense.reference ?? "",
+    notes: expense.notes ?? "",
+    items: (items ?? []).map((item) => ({ productCode: item.product_code ?? "", description: item.description, quantity: Number(item.quantity), unit: item.unit ?? "pcs", unitPrice: Number(item.unit_price), discount: Number(item.discount), vatRate: Number(item.vat_rate), serialNumber: item.serial_number ?? "" })),
+  };
+  const linkedPurchaseOrder = (purchaseOrders ?? []).find((purchaseOrder) => purchaseOrder.id === expense.purchase_order_id);
   return <AppShell active="expenses" title={expense.description} action={<div className="flex gap-2"><Link href="/expenses" className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm">← Expenses</Link>{expense.status === "draft" && <form action={deleteExpense.bind(null, id)}><button className="rounded-xl border border-red-200 bg-white px-4 py-2 text-sm text-red-600">Delete draft</button></form>}</div>}>
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]"><ExpenseForm categories={categories ?? []} clients={clients ?? []} suppliers={suppliers ?? []} projects={projects ?? []} expense={initial} /><ExpensePaymentLog expenseId={id} payments={payments ?? []} grandTotal={Number(expense.grand_total) || 0} status={expense.status} /></div>
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]"><ExpenseForm categories={categories ?? []} clients={clients ?? []} suppliers={suppliers ?? []} projects={projects ?? []} purchaseOrders={purchaseOrders ?? []} expense={initial} /><div className="space-y-6"><ExpenseAttachment expenseId={id} name={expense.attachment_name ?? null} size={expense.attachment_size == null ? null : Number(expense.attachment_size)} disabled={expense.status === "void"} />{linkedPurchaseOrder ? <section className="rounded-2xl bg-white p-5 shadow-[var(--shadow-card)] ring-1 ring-slate-200"><h2 className="text-base font-semibold text-slate-900">Payment tracking</h2><p className="mt-2 text-sm text-slate-600">This supplier invoice is linked to <Link href={`/purchase-orders/${linkedPurchaseOrder.id}`} className="font-semibold text-navy">{linkedPurchaseOrder.number}</Link>. Record payments on the purchase order so costs are not counted twice.</p></section> : <ExpensePaymentLog expenseId={id} payments={payments ?? []} grandTotal={Number(expense.grand_total) || 0} status={expense.status} />}</div></div>
   </AppShell>;
 }
