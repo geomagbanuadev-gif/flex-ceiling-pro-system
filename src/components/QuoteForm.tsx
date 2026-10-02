@@ -176,7 +176,8 @@ export function QuoteForm({
     };
     startTransition(async () => {
       try {
-        await saveQuote(payload);
+        const result = await saveQuote(payload);
+        if (result?.ok === false) setError(result.error);
       } catch (e) {
         unstable_rethrow(e);
         setError(e instanceof Error ? e.message : "Failed to save");
@@ -242,7 +243,13 @@ export function QuoteForm({
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
             <label className={lbl}>{isInvoice ? "Invoice No." : isProforma ? "Proforma No." : "Quote No."}</label>
-            <input className={inp + " mt-1.5"} value={number} onChange={(e) => setNumber(e.target.value)} />
+            <input
+              className={inp + " mt-1.5" + (initial && (isInvoice || isProforma) ? " cursor-not-allowed bg-slate-50 text-slate-500" : "")}
+              value={number}
+              onChange={(e) => setNumber(e.target.value)}
+              readOnly={Boolean(initial && (isInvoice || isProforma))}
+              title={initial && (isInvoice || isProforma) ? "Document numbers are assigned automatically" : undefined}
+            />
           </div>
           <div>
             <label className={lbl}>Date</label>

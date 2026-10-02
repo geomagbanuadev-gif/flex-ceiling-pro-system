@@ -98,6 +98,65 @@ create index if not exists documents_number_idx on documents (number);
 create unique index if not exists documents_share_token_idx on documents (share_token) where share_token is not null;
 create index if not exists documents_date_idx   on documents (doc_date desc);
 
+-- Enforce unique numbers per document type without failing setup when legacy
+-- duplicates already exist. Existing duplicates can still be deleted normally.
+create or replace function prevent_duplicate_document_number() returns trigger
+language plpgsql set search_path = public as $$
+declare
+  normalized_number text := lower(trim(new.number));
+begin
+  if normalized_number = '' then raise exception 'Document number is required'; end if;
+  perform pg_advisory_xact_lock(hashtextextended(new.type || ':' || normalized_number, 0));
+  if exists (
+    select 1 from documents
+    where type = new.type and lower(trim(number)) = normalized_number and id is distinct from new.id
+  ) then
+    raise exception 'Document number % already exists for %', new.number, new.type;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists documents_prevent_duplicate_number on documents;
+create trigger documents_prevent_duplicate_number
+before insert or update of type, number on documents
+for each row execute function prevent_duplicate_document_number();
+
+create table if not exists document_change_log (
+  id uuid primary key default gen_random_uuid(),
+  document_id uuid not null,
+  document_number text not null,
+  document_type text not null,
+  changes jsonb not null,
+  changed_at timestamptz not null default now(),
+  changed_by uuid references auth.users on delete set null
+);
+create index if not exists document_change_log_document_idx on document_change_log (document_id, changed_at desc);
+
+create or replace function log_document_key_changes() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare changes_made jsonb := '{}'::jsonb;
+begin
+  if old.number is distinct from new.number then
+    changes_made := changes_made || jsonb_build_object('number', jsonb_build_object('from', old.number, 'to', new.number));
+  end if;
+  if old.doc_date is distinct from new.doc_date then
+    changes_made := changes_made || jsonb_build_object('date', jsonb_build_object('from', old.doc_date, 'to', new.doc_date));
+  end if;
+  if old.status is distinct from new.status then
+    changes_made := changes_made || jsonb_build_object('status', jsonb_build_object('from', old.status, 'to', new.status));
+  end if;
+  if changes_made <> '{}'::jsonb then
+    insert into document_change_log (document_id, document_number, document_type, changes, changed_by)
+    values (new.id, new.number, new.type, changes_made, coalesce(new.updated_by, auth.uid()));
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists documents_log_key_changes on documents;
+create trigger documents_log_key_changes
+after update of number, doc_date, status on documents
+for each row execute function log_document_key_changes();
+
 -- ── Line items ──────────────────────────────────────────────────────────────
 create table if not exists document_items (
   id          uuid primary key default gen_random_uuid(),
@@ -438,6 +497,7 @@ alter table clients          enable row level security;
 alter table catalog_items    enable row level security;
 alter table documents        enable row level security;
 alter table document_items   enable row level security;
+alter table document_change_log enable row level security;
 alter table sales_reports    enable row level security;
 alter table profiles         enable row level security;
 alter table suppliers            enable row level security;
@@ -476,6 +536,10 @@ create policy doc_access on documents for all to authenticated
 drop policy if exists finance_documents_read on documents;
 create policy finance_documents_read on documents for select to authenticated
   using (app_user_role() = 'finance' and type in ('invoice','receipt'));
+drop policy if exists document_change_log_read on document_change_log;
+create policy document_change_log_read on document_change_log for select to authenticated
+  using (exists (select 1 from documents where documents.id = document_change_log.document_id));
+grant select on document_change_log to authenticated;
 
 -- document_items: inherit access from the parent document
 drop policy if exists auth_all on document_items;

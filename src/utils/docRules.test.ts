@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { statusesFor, quoteStatusAfterInvoiceConversion, prefixFor, wordsForType, advanceForType, defaultAdvance, paymentAcknowledgment, invoiceAmountsForSource, dependentDocumentDeleteError, canRegenerateGeneratedDocument, regenerationBlockedMessage, allowedStatusTransitions } from "./docRules";
+import { statusesFor, quoteStatusAfterInvoiceConversion, prefixFor, wordsForType, advanceForType, defaultAdvance, paymentAcknowledgment, invoiceAmountsForSource, dependentDocumentDeleteError, canRegenerateGeneratedDocument, regenerationBlockedMessage, allowedStatusTransitions, canModifyDocument } from "./docRules";
 
 describe("statusesFor", () => {
   it("allows ongoing only for quotes and pro formas", () => {
@@ -24,6 +24,13 @@ describe("generated document safety", () => {
     expect(allowedStatusTransitions("invoice", "paid")).toEqual(["paid"]);
     expect(allowedStatusTransitions("receipt", "issued")).toEqual(["issued", "void"]);
     expect(allowedStatusTransitions("receipt", "void")).toEqual(["void"]);
+  });
+
+  it("allows billing documents to be edited or deleted only while draft", () => {
+    expect(canModifyDocument("invoice", "draft")).toBe(true);
+    expect(canModifyDocument("invoice", "paid")).toBe(false);
+    expect(canModifyDocument("receipt", "issued")).toBe(false);
+    expect(canModifyDocument("quote", "won")).toBe(true);
   });
 });
 

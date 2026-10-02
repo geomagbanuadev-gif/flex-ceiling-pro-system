@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { amountInWords } from "@/utils/amountInWords";
 import { nextDocNumber } from "@/utils/docNumber";
-import { statusesFor, allowedStatusTransitions, quoteStatusAfterInvoiceConversion, prefixFor, wordsForType, advanceForType, defaultAdvance, invoiceAmountsForSource, dependentDocumentDeleteError, regenerationBlockedMessage, type DocType } from "@/utils/docRules";
+import { statusesFor, allowedStatusTransitions, quoteStatusAfterInvoiceConversion, prefixFor, wordsForType, advanceForType, defaultAdvance, invoiceAmountsForSource, dependentDocumentDeleteError, regenerationBlockedMessage, canModifyDocument, type DocType } from "@/utils/docRules";
 import { getProfile, canSeeInvoices, canSeeReceipts } from "@/utils/profile";
 
 /** Next sequential document number for a type, e.g. "PF-0007". */
@@ -115,12 +115,24 @@ export type QuotePayload = {
   items: QuoteItemInput[];
 };
 
-export async function saveQuote(p: QuotePayload) {
+export type SaveDocumentResult = { ok: false; error: string };
+export type DeleteDocumentResult = { ok: true; redirectTo: string } | { ok: false; error: string };
+
+export async function saveQuote(p: QuotePayload): Promise<SaveDocumentResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
+
+  const type = p.type ?? "quote";
+  const number = p.number.trim();
+  if (!number) return { ok: false, error: "Document number is required." };
+  let duplicateNumberQuery = supabase.from("documents").select("id").eq("type", type).eq("number", number);
+  if (p.id) duplicateNumberQuery = duplicateNumberQuery.neq("id", p.id);
+  const { data: duplicateNumber, error: duplicateNumberError } = await duplicateNumberQuery.limit(1).maybeSingle();
+  if (duplicateNumberError) return { ok: false, error: "Could not verify the document number. Please try again." };
+  if (duplicateNumber) return { ok: false, error: `${number} already exists. Document numbers must be unique.` };
 
   // find-or-create client by name
   let clientId = p.clientId;
@@ -150,7 +162,6 @@ export async function saveQuote(p: QuotePayload) {
     }
   }
 
-  const type = p.type ?? "quote";
   if (p.projectId) {
     const { data: project } = await supabase.from("projects").select("client_id").eq("id", p.projectId).maybeSingle();
     if (!project || project.client_id !== clientId) throw new Error("The selected project must belong to the document client");
@@ -162,7 +173,7 @@ export async function saveQuote(p: QuotePayload) {
   }
   const docFields = {
     type,
-    number: p.number,
+    number,
     doc_date: p.date || null,
     client_id: clientId,
     client_name: p.clientName,
@@ -192,11 +203,11 @@ export async function saveQuote(p: QuotePayload) {
 
   let docId = p.id;
   if (docId) {
-    const { data: current, error: currentError } = await supabase.from("documents").select("type, status").eq("id", docId).maybeSingle();
+    const { data: current, error: currentError } = await supabase.from("documents").select("type, status, number").eq("id", docId).maybeSingle();
     if (currentError || !current) throw new Error(currentError?.message ?? "Document not found");
-    if (current.type !== "quote" && current.status !== "draft") {
-      throw new Error("Only draft billing documents can be edited. Duplicate this document to create a revision.");
-    }
+    if (current.type !== type) return { ok: false, error: "A document type cannot be changed after creation." };
+    if (!canModifyDocument(current.type, current.status)) return { ok: false, error: "Only draft billing documents can be edited. Duplicate this document to create a revision." };
+    if (current.type !== "quote" && current.number !== number) return { ok: false, error: "Billing document numbers are assigned automatically and cannot be changed." };
     // edit: update fields but keep the existing status AND original supplier snapshot
     const { error: upErr } = await supabase.from("documents").update(docFields).eq("id", docId);
     if (upErr) throw new Error(`Could not save document: ${upErr.message}`);
@@ -609,32 +620,43 @@ export async function convertToReceipt(sourceId: string) {
 }
 
 /** Permanently delete a document and its line items. */
-export async function deleteDocument(docId: string) {
+export async function deleteDocument(docId: string): Promise<DeleteDocumentResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  if (!user) return { ok: false, error: "Your session expired. Sign in and try again." };
 
   // Preserve generated-document links: a child must be removed before its source.
   const [docResult, generatedResult, appliedResult] = await Promise.all([
-    supabase.from("documents").select("type").eq("id", docId).maybeSingle(),
+    supabase.from("documents").select("id, type, status").eq("id", docId).maybeSingle(),
     supabase.from("documents").select("id, type, number").eq("converted_from", docId),
     supabase.from("documents").select("id, type, number").eq("applies_to_invoice_id", docId),
   ]);
   const dependencyError = docResult.error || generatedResult.error || appliedResult.error;
-  if (dependencyError) throw new Error(`Could not check linked documents: ${dependencyError.message}`);
+  if (dependencyError) {
+    console.error("Could not check linked documents before deletion", dependencyError);
+    return { ok: false, error: "Could not check whether this document is safe to delete. Please try again." };
+  }
   const doc = docResult.data;
+  if (!doc) return { ok: false, error: "This document no longer exists." };
+  if (!canModifyDocument(doc.type, doc.status)) {
+    return { ok: false, error: "Only draft billing documents can be deleted. Duplicate finalized documents to create revisions." };
+  }
   const generated = generatedResult.data;
   const applied = appliedResult.data;
   const type = doc?.type ?? "quote";
   const dependents = [...(generated ?? []), ...(applied ?? [])].filter((row, index, rows) => rows.findIndex((item) => item.id === row.id) === index);
   const blocker = dependentDocumentDeleteError(dependents);
-  if (blocker) throw new Error(blocker);
+  if (blocker) return { ok: false, error: blocker };
 
   // Line items cascade only after the document delete succeeds.
-  const { error } = await supabase.from("documents").delete().eq("id", docId);
-  if (error) throw new Error(error.message);
+  const { data: deleted, error } = await supabase.from("documents").delete().eq("id", docId).select("id").maybeSingle();
+  if (error) {
+    console.error("Could not delete document", { docId, error });
+    return { ok: false, error: "Could not delete this draft. Please refresh and try again." };
+  }
+  if (!deleted) return { ok: false, error: "This draft could not be deleted. Check your access and try again." };
   revalidatePath("/quotes");
-  redirect(`/quotes?type=${type}&flash=deleted`);
+  return { ok: true, redirectTo: `/quotes?type=${type}&flash=deleted` };
 }

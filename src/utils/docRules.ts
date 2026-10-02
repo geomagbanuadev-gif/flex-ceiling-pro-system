@@ -21,6 +21,10 @@ export function allowedStatusTransitions(type: string, current: string | null | 
   return all.filter((next) => next !== "draft");
 }
 
+/** Quotes stay editable; billing documents are mutable only while still drafts. */
+export const canModifyDocument = (type: string, status: string | null | undefined) =>
+  type === "quote" || status === "draft";
+
 export const canRegenerateGeneratedDocument = (status: string | null | undefined) => status === "draft";
 
 export function regenerationBlockedMessage(type: DocType, status: string | null | undefined) {

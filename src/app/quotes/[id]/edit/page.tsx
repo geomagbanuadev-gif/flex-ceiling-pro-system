@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { QuoteForm, type QuoteInitial } from "@/components/QuoteForm";
 import { ReceiptForm, type ReceiptInitial } from "@/components/ReceiptForm";
+import { canModifyDocument } from "@/utils/docRules";
 
 export default async function EditDocumentPage(props: PageProps<"/quotes/[id]/edit">) {
   const { id } = await props.params;
@@ -21,6 +22,7 @@ export default async function EditDocumentPage(props: PageProps<"/quotes/[id]/ed
 
   const doc = docRes.data;
   if (!doc) notFound();
+  if (!canModifyDocument(doc.type, doc.status)) redirect(`/quotes/${id}`);
   const settings = settingsRes.data;
   const items = itemsRes.data ?? [];
   const clients = clientsRes.data ?? [];

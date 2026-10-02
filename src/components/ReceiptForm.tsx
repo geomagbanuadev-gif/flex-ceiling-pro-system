@@ -138,7 +138,8 @@ export function ReceiptForm({
     };
     startTransition(async () => {
       try {
-        await saveQuote(payload);
+        const result = await saveQuote(payload);
+        if (result?.ok === false) setError(result.error);
       } catch (e) {
         unstable_rethrow(e);
         setError(e instanceof Error ? e.message : "Failed to save");
@@ -200,7 +201,13 @@ export function ReceiptForm({
           </div>
           <div>
             <label className={lbl}>Receipt No.</label>
-            <input className={inp + " mt-1.5"} value={number} onChange={(e) => setNumber(e.target.value)} />
+            <input
+              className={inp + " mt-1.5" + (initial ? " cursor-not-allowed bg-slate-50 text-slate-500" : "")}
+              value={number}
+              onChange={(e) => setNumber(e.target.value)}
+              readOnly={Boolean(initial)}
+              title={initial ? "Receipt numbers are assigned automatically" : undefined}
+            />
           </div>
           <div>
             <label className={lbl}>Payment date</label>

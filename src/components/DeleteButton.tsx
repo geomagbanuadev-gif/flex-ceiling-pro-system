@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { unstable_rethrow } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { deleteDocument } from "@/app/quotes/actions";
 import { ConfirmDialog } from "./ConfirmDialog";
 
@@ -9,15 +9,18 @@ export function DeleteButton({ docId, label }: { docId: string; label: string })
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [error, setError] = useState("");
+  const router = useRouter();
 
   function confirm() {
     setError("");
     start(async () => {
       try {
-        await deleteDocument(docId);
-      } catch (e) {
-        unstable_rethrow(e);
-        setError(e instanceof Error ? e.message : "Failed to delete");
+        const result = await deleteDocument(docId);
+        if (!result.ok) return setError(result.error);
+        setOpen(false);
+        router.push(result.redirectTo);
+      } catch {
+        setError("Could not connect to the server. Please try again.");
       }
     });
   }

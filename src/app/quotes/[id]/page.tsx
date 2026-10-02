@@ -11,9 +11,13 @@ import { StatusControl } from "@/components/StatusControl";
 import { ShareButton } from "@/components/ShareButton";
 import { fmtDate } from "@/utils/format";
 import { outstandingBalance } from "@/utils/finance";
+import { canModifyDocument } from "@/utils/docRules";
 
 const money = (v: number | null) =>
   v == null ? "—" : "AED " + Number(v).toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const changeSummary = (changes: Record<string, { from: string | null; to: string | null }>) =>
+  Object.entries(changes).map(([field, value]) => `${field === "date" ? "Date" : field[0].toUpperCase() + field.slice(1)}: ${value.from ?? "—"} → ${value.to ?? "—"}`).join(" · ");
 
 export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) {
   const { id } = await props.params;
@@ -21,13 +25,14 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
   const { data: doc } = await supabase.from("documents").select("*").eq("id", id).single();
   if (!doc) notFound();
   const { data: items } = await supabase.from("document_items").select("*").eq("document_id", id).order("sort_order");
-  const [{ data: project }, { data: appliedInvoice }, { data: allocatedReceipts }, { data: sourceDocument }, { data: generatedDocuments }, { data: bankAllocation }] = await Promise.all([
+  const [{ data: project }, { data: appliedInvoice }, { data: allocatedReceipts }, { data: sourceDocument }, { data: generatedDocuments }, { data: bankAllocation }, { data: changeHistory }] = await Promise.all([
     doc.project_id ? supabase.from("projects").select("id, name, code").eq("id", doc.project_id).maybeSingle() : Promise.resolve({ data: null }),
     doc.type === "receipt" && doc.applies_to_invoice_id ? supabase.from("documents").select("id, number").eq("id", doc.applies_to_invoice_id).maybeSingle() : Promise.resolve({ data: null }),
     doc.type === "invoice" ? supabase.from("documents").select("grand_total").eq("type", "receipt").eq("status", "issued").eq("applies_to_invoice_id", id) : Promise.resolve({ data: [] }),
     doc.converted_from ? supabase.from("documents").select("id, number, type").eq("id", doc.converted_from).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from("documents").select("id, number, type, status").eq("converted_from", id).order("created_at", { ascending: false }),
     doc.type === "receipt" ? supabase.from("bank_transaction_allocations").select("bank_transactions(id, booking_date, amount)").eq("receipt_id", id).maybeSingle() : Promise.resolve({ data: null }),
+    supabase.from("document_change_log").select("id, changes, changed_at, changed_by").eq("document_id", id).order("changed_at", { ascending: false }).limit(8),
   ]);
   const received = (allocatedReceipts ?? []).reduce((sum, receipt) => sum + (Number(receipt.grand_total) || 0), 0);
   const invoiceBalance = outstandingBalance(doc.grand_total, received);
@@ -36,9 +41,10 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
   const generatedProforma = generatedDocuments?.find((generated) => generated.type === "proforma");
   const generatedInvoice = generatedDocuments?.find((generated) => generated.type === "invoice");
   const generatedReceipt = generatedDocuments?.find((generated) => generated.type === "receipt");
+  const canModify = canModifyDocument(doc.type, doc.status);
 
   // audit trail — resolve creator/updater to emails
-  const auditIds = [doc.created_by, doc.updated_by].filter(Boolean);
+  const auditIds = [doc.created_by, doc.updated_by, ...(changeHistory ?? []).map((change) => change.changed_by)].filter(Boolean);
   const { data: profs } = auditIds.length
     ? await supabase.from("profiles").select("id, email").in("id", auditIds)
     : { data: [] as { id: string; email: string }[] };
@@ -60,7 +66,7 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
       action={
         <div className="flex gap-2">
           <Link href={`/quotes?type=${typeKey}`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-slate-50">← Back</Link>
-          {(doc.type === "quote" || doc.status === "draft") && <Link href={`/quotes/${id}/edit`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-slate-50">Edit</Link>}
+          {canModify && <Link href={`/quotes/${id}/edit`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-slate-50">Edit</Link>}
           <a href={`/quotes/${id}/pdf`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-xl bg-navy px-4 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-glow)] transition hover:-translate-y-0.5 hover:bg-navy-700"><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>Open / Print PDF</a>
         </div>
       }
@@ -82,7 +88,7 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
           {(typeKey === "quote" || typeKey === "proforma") && <ConvertButton quoteId={id} sourceType={typeKey} existingId={generatedInvoice?.id} existingStatus={generatedInvoice?.status} />}
           {(typeKey === "invoice" || typeKey === "proforma") && <ReceiptButton sourceId={id} existingId={generatedReceipt?.id} existingStatus={generatedReceipt?.status} />}
           <DuplicateButton docId={id} />
-          <DeleteButton docId={id} label={`${docWord} ${doc.number}`} />
+          {canModify ? <DeleteButton docId={id} label={`${docWord} ${doc.number}`} /> : <span className="inline-flex items-center rounded-lg bg-slate-200 px-3 py-2 text-xs font-medium text-slate-600" title="Finalized billing documents cannot be edited or deleted">Locked after Draft</span>}
         </div>
       </div>
 
@@ -156,6 +162,14 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
             {emailOf(doc.created_by) ? <>Created by {emailOf(doc.created_by)}</> : "Imported"}
             {doc.updated_at ? <> · last updated {fmtDate(doc.updated_at.slice(0, 10))}{emailOf(doc.updated_by) ? ` by ${emailOf(doc.updated_by)}` : ""}</> : null}
           </p>
+          {!!changeHistory?.length && (
+            <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
+              <p className="font-semibold uppercase tracking-wide text-slate-500">Document history</p>
+              <div className="mt-2 space-y-1.5">
+                {changeHistory.map((change) => <p key={change.id}>{changeSummary(change.changes)} · {new Date(change.changed_at).toLocaleString("en-AE")}{emailOf(change.changed_by) ? ` · ${emailOf(change.changed_by)}` : ""}</p>)}
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="rounded-2xl bg-white ring-1 ring-slate-200 p-2 shadow-[var(--shadow-card)]">
