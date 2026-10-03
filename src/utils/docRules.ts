@@ -15,9 +15,8 @@ export const statusesFor = (type: string): string[] =>
 export function allowedStatusTransitions(type: string, current: string | null | undefined) {
   const status = current ?? "draft";
   const all = statusesFor(type);
-  if (type === "quote" || status === "draft") return all;
+  if (type === "quote" || type === "invoice" || status === "draft") return all;
   if (type === "receipt") return status === "issued" ? ["issued", "void"] : [status];
-  if (type === "invoice" && status === "paid") return ["paid"];
   return all.filter((next) => next !== "draft");
 }
 

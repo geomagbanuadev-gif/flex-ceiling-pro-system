@@ -88,7 +88,7 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
           {(typeKey === "quote" || typeKey === "proforma") && <ConvertButton quoteId={id} sourceType={typeKey} existingId={generatedInvoice?.id} existingStatus={generatedInvoice?.status} />}
           {(typeKey === "invoice" || typeKey === "proforma") && <ReceiptButton sourceId={id} existingId={generatedReceipt?.id} existingStatus={generatedReceipt?.status} />}
           <DuplicateButton docId={id} />
-          {canModify ? <DeleteButton docId={id} label={`${docWord} ${doc.number}`} /> : <span className="inline-flex items-center rounded-lg bg-slate-200 px-3 py-2 text-xs font-medium text-slate-600" title="Finalized billing documents cannot be edited or deleted">Locked after Draft</span>}
+          {canModify ? <DeleteButton docId={id} label={`${docWord} ${doc.number}`} /> : <span className="inline-flex items-center rounded-lg bg-slate-200 px-3 py-2 text-xs font-medium text-slate-600" title={doc.type === "invoice" ? "Change the status to Draft to edit or delete" : "Finalized billing documents cannot be edited or deleted"}>{doc.type === "invoice" ? "Change to Draft to edit/delete" : "Locked after Draft"}</span>}
         </div>
       </div>
 

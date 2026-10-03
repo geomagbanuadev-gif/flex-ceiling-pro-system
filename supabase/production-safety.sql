@@ -65,16 +65,15 @@ begin
   end if;
   if tg_op = 'INSERT' then return new; end if;
   if old.type in ('invoice', 'proforma', 'receipt') and old.status <> 'draft' then
-    if new.status = 'draft' then
+    -- Tax invoices may be returned to Draft so staff can correct mistakes. The
+    -- status change is logged below; the actual edit must happen afterwards.
+    if old.type <> 'invoice' and new.status = 'draft' then
       raise exception 'A finalized billing document cannot return to draft';
     end if;
     if (to_jsonb(new) - 'status' - 'share_token' - 'updated_at' - 'updated_by')
        is distinct from
        (to_jsonb(old) - 'status' - 'share_token' - 'updated_at' - 'updated_by') then
-      raise exception 'A finalized billing document cannot be edited; duplicate it to create a revision';
-    end if;
-    if old.type = 'invoice' and old.status = 'paid' and new.status is distinct from old.status then
-      raise exception 'A paid tax invoice is final';
+      raise exception 'A finalized billing document cannot be edited; return a tax invoice to Draft first';
     end if;
     if old.type = 'receipt' and ((old.status = 'issued' and new.status not in ('issued', 'void')) or (old.status = 'void' and new.status is distinct from old.status)) then
       raise exception 'An issued receipt can only be voided, and a void receipt is final';

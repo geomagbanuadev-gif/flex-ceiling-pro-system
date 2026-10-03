@@ -19,9 +19,9 @@ describe("generated document safety", () => {
     expect(regenerationBlockedMessage("receipt", "issued")).toContain("Only a draft receipt");
   });
 
-  it("does not let finalized billing records return to draft", () => {
-    expect(allowedStatusTransitions("invoice", "sent")).not.toContain("draft");
-    expect(allowedStatusTransitions("invoice", "paid")).toEqual(["paid"]);
+  it("lets invoices return to draft while keeping other billing records protected", () => {
+    expect(allowedStatusTransitions("invoice", "sent")).toContain("draft");
+    expect(allowedStatusTransitions("invoice", "paid")).toEqual(["draft", "sent", "paid", "lost"]);
     expect(allowedStatusTransitions("receipt", "issued")).toEqual(["issued", "void"]);
     expect(allowedStatusTransitions("receipt", "void")).toEqual(["void"]);
   });

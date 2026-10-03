@@ -206,7 +206,7 @@ export async function saveQuote(p: QuotePayload): Promise<SaveDocumentResult> {
     const { data: current, error: currentError } = await supabase.from("documents").select("type, status, number").eq("id", docId).maybeSingle();
     if (currentError || !current) throw new Error(currentError?.message ?? "Document not found");
     if (current.type !== type) return { ok: false, error: "A document type cannot be changed after creation." };
-    if (!canModifyDocument(current.type, current.status)) return { ok: false, error: "Only draft billing documents can be edited. Duplicate this document to create a revision." };
+    if (!canModifyDocument(current.type, current.status)) return { ok: false, error: current.type === "invoice" ? "Change the tax invoice status back to Draft before editing it." : "Only draft billing documents can be edited." };
     if (current.type !== "quote" && current.number !== number) return { ok: false, error: "Billing document numbers are assigned automatically and cannot be changed." };
     // edit: update fields but keep the existing status AND original supplier snapshot
     const { error: upErr } = await supabase.from("documents").update(docFields).eq("id", docId);
@@ -362,7 +362,7 @@ export async function updateStatus(docId: string, status: string) {
   const { data: doc } = await supabase.from("documents").select("type, status").eq("id", docId).maybeSingle();
   if (!doc) throw new Error("Document not found");
   if (!statusesFor(doc.type).includes(status)) throw new Error("Invalid status");
-  if (!allowedStatusTransitions(doc.type, doc.status).includes(status)) throw new Error("A finalized billing document cannot return to an editable status");
+  if (!allowedStatusTransitions(doc.type, doc.status).includes(status)) throw new Error("This status change is not allowed");
 
   const { error } = await supabase
     .from("documents")
@@ -641,7 +641,7 @@ export async function deleteDocument(docId: string): Promise<DeleteDocumentResul
   const doc = docResult.data;
   if (!doc) return { ok: false, error: "This document no longer exists." };
   if (!canModifyDocument(doc.type, doc.status)) {
-    return { ok: false, error: "Only draft billing documents can be deleted. Duplicate finalized documents to create revisions." };
+    return { ok: false, error: doc.type === "invoice" ? "Change the tax invoice status back to Draft before deleting it." : "Only draft billing documents can be deleted." };
   }
   const generated = generatedResult.data;
   const applied = appliedResult.data;
