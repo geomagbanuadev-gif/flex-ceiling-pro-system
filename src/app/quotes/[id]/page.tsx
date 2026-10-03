@@ -76,6 +76,7 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
         <div className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm text-slate-500">
           <span className="font-medium">Status</span>
           <StatusControl docId={id} type={typeKey} current={doc.status} />
+          {doc.type === "invoice" && doc.status === "draft" && <span className="text-xs text-amber-700">Excluded from active reports until marked Sent or Paid.</span>}
           {expiry && (
             <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${expiry.expired ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-600"}`}>
               {expiry.expired ? `Expired ${expiry.until}` : `Valid until ${expiry.until}`}

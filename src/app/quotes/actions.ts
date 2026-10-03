@@ -366,7 +366,12 @@ export async function updateStatus(docId: string, status: string) {
 
   const { error } = await supabase
     .from("documents")
-    .update({ status, updated_by: user.id, updated_at: new Date().toISOString() })
+    .update({
+      status,
+      updated_by: user.id,
+      updated_at: new Date().toISOString(),
+      ...(doc.type === "invoice" && status === "draft" ? { share_token: null } : {}),
+    })
     .eq("id", docId);
   if (error) throw new Error(error.message);
   revalidatePath(`/quotes/${docId}`);

@@ -29,7 +29,7 @@ export const canRegenerateGeneratedDocument = (status: string | null | undefined
 export function regenerationBlockedMessage(type: DocType, status: string | null | undefined) {
   if (canRegenerateGeneratedDocument(status)) return null;
   const label = type === "invoice" ? "tax invoice" : type === "proforma" ? "pro forma" : "receipt";
-  return `Only a draft ${label} can be regenerated. Duplicate it to create a revision.`;
+  return `Only a draft ${label} can be regenerated. Duplicate it to create a new draft.`;
 }
 
 /** Converting an ongoing quote to an invoice must not move it back to Won. */

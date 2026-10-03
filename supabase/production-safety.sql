@@ -64,6 +64,41 @@ begin
     raise exception 'Invalid document status';
   end if;
   if tg_op = 'INSERT' then return new; end if;
+
+  -- Reopened invoices must not expose in-progress corrections through an old
+  -- public URL. Sharing can be enabled again after the correction is final.
+  if new.type = 'invoice' and new.status = 'draft' then
+    new.share_token := null;
+  end if;
+
+  -- A receipt is a separate issued accounting record. Reopening its invoice
+  -- may correct dates and descriptive fields, but must not silently change the
+  -- customer or money that the receipt acknowledges.
+  if old.type = 'invoice'
+     and exists (
+       select 1 from documents receipt
+       where receipt.type = 'receipt'
+         and receipt.status = 'issued'
+         and receipt.applies_to_invoice_id = old.id
+     )
+     and (
+       old.client_id is distinct from new.client_id
+       or old.client_name is distinct from new.client_name
+       or old.client_trn is distinct from new.client_trn
+       or old.client_address is distinct from new.client_address
+       or old.client_email is distinct from new.client_email
+       or old.contact_person is distinct from new.contact_person
+       or old.contact_phone is distinct from new.contact_phone
+       or old.project_id is distinct from new.project_id
+       or old.subtotal is distinct from new.subtotal
+       or old.discount is distinct from new.discount
+       or old.vat_rate is distinct from new.vat_rate
+       or old.vat_amount is distinct from new.vat_amount
+       or old.grand_total is distinct from new.grand_total
+     ) then
+    raise exception 'Void the issued receipt before changing this invoice customer, project, or amount';
+  end if;
+
   if old.type in ('invoice', 'proforma', 'receipt') and old.status <> 'draft' then
     -- Tax invoices may be returned to Draft so staff can correct mistakes. The
     -- status change is logged below; the actual edit must happen afterwards.
@@ -73,7 +108,7 @@ begin
     if (to_jsonb(new) - 'status' - 'share_token' - 'updated_at' - 'updated_by')
        is distinct from
        (to_jsonb(old) - 'status' - 'share_token' - 'updated_at' - 'updated_by') then
-      raise exception 'A finalized billing document cannot be edited; return a tax invoice to Draft first';
+      raise exception 'Only draft billing documents can be edited';
     end if;
     if old.type = 'receipt' and ((old.status = 'issued' and new.status not in ('issued', 'void')) or (old.status = 'void' and new.status is distinct from old.status)) then
       raise exception 'An issued receipt can only be voided, and a void receipt is final';
