@@ -98,6 +98,13 @@ async function DocumentsTable({ sp }: { sp: Record<string, string | string[] | u
   const sizeRaw = parseInt(str("size")) || 20;
   const pageSize = PAGE_SIZES.includes(sizeRaw) ? sizeRaw : 20;
   const fromIdx = (page - 1) * pageSize;
+  const returnParams = new URLSearchParams();
+  for (const key of ["q", "type", "status", "client", "from", "to", "min", "max", "sort", "dir", "page", "size"]) {
+    const value = str(key);
+    if (value) returnParams.set(key, value);
+  }
+  const returnPath = `/quotes${returnParams.size ? `?${returnParams}` : ""}`;
+  const detailHref = (id: string) => `/quotes/${id}?returnTo=${encodeURIComponent(returnPath)}`;
 
   const supabase = await createClient();
   let query = supabase
@@ -131,9 +138,9 @@ async function DocumentsTable({ sp }: { sp: Record<string, string | string[] | u
           </thead>
           <tbody className="divide-y divide-slate-50">
             {(docs ?? []).map((d) => (
-              <LinkRow key={d.id} href={`/quotes/${d.id}`} className="cursor-pointer transition-colors hover:bg-slate-50/70">
+              <LinkRow key={d.id} href={detailHref(d.id)} className="cursor-pointer transition-colors hover:bg-slate-50/70">
                 <td className="px-4 py-3">
-                  <Link href={`/quotes/${d.id}`} className="font-semibold text-navy hover:text-navy-600">{d.number}</Link>
+                  <Link href={detailHref(d.id)} className="font-semibold text-navy hover:text-navy-600">{d.number}</Link>
                 </td>
                 <td className="px-4 py-3"><TypeChip type={d.type} /></td>
                 <td className="px-4 py-3"><StatusBadge status={d.status} /></td>

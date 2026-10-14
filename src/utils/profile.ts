@@ -1,3 +1,6 @@
+import "server-only";
+
+import { cache } from "react";
 import { createClient } from "@/utils/supabase/server";
 import type { Role } from "@/utils/roles";
 
@@ -17,7 +20,7 @@ export type Profile = {
  * (RBAC SQL not run), returns an open super profile so the app keeps working.
  * Once RBAC exists, a missing/inactive profile means "no access".
  */
-export async function getProfile(): Promise<Profile | null> {
+export const getProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -30,4 +33,4 @@ export async function getProfile(): Promise<Profile | null> {
     return { id: user.id, email: user.email ?? null, full_name: null, role: "super", active: true };
   }
   return (data as Profile) ?? null;
-}
+});

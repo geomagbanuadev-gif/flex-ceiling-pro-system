@@ -12,6 +12,7 @@ import { ShareButton } from "@/components/ShareButton";
 import { fmtDate } from "@/utils/format";
 import { outstandingBalance } from "@/utils/finance";
 import { canModifyDocument } from "@/utils/docRules";
+import { safeDocumentListPath } from "@/utils/navigation";
 
 const money = (v: number | null) =>
   v == null ? "—" : "AED " + Number(v).toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -21,6 +22,7 @@ const changeSummary = (changes: Record<string, { from: string | null; to: string
 
 export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) {
   const { id } = await props.params;
+  const search = await props.searchParams;
   const supabase = await createClient();
   const { data: doc } = await supabase.from("documents").select("*").eq("id", id).single();
   if (!doc) notFound();
@@ -38,6 +40,7 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
   const invoiceBalance = outstandingBalance(doc.grand_total, received);
   const docWord = doc.type === "invoice" ? "Tax Invoice" : doc.type === "proforma" ? "Pro Forma" : doc.type === "receipt" ? "Receipt" : "Quotation";
   const typeKey: "quote" | "invoice" | "proforma" | "receipt" = doc.type === "invoice" ? "invoice" : doc.type === "proforma" ? "proforma" : doc.type === "receipt" ? "receipt" : "quote";
+  const backHref = safeDocumentListPath(search.returnTo, `/quotes?type=${typeKey}`);
   const generatedProforma = generatedDocuments?.find((generated) => generated.type === "proforma");
   const generatedInvoice = generatedDocuments?.find((generated) => generated.type === "invoice");
   const generatedReceipt = generatedDocuments?.find((generated) => generated.type === "receipt");
@@ -65,7 +68,7 @@ export default async function QuoteDetailPage(props: PageProps<"/quotes/[id]">) 
       title={`${docWord} ${doc.number}`}
       action={
         <div className="flex gap-2">
-          <Link href={`/quotes?type=${typeKey}`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-slate-50">← Back</Link>
+          <Link href={backHref} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-slate-50">← Back</Link>
           {canModify && <Link href={`/quotes/${id}/edit`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-slate-50">Edit</Link>}
           <a href={`/quotes/${id}/pdf`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-xl bg-navy px-4 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-glow)] transition hover:-translate-y-0.5 hover:bg-navy-700"><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>Open / Print PDF</a>
         </div>

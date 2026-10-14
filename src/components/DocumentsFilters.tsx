@@ -59,7 +59,7 @@ export function DocumentsFilters({ clients = [], lockedType }: { clients?: { id:
   const first = useRef(true);
   useEffect(() => {
     if (first.current) { first.current = false; return; }
-    const t = setTimeout(() => start(() => router.push(buildUrl())), 350);
+    const t = setTimeout(() => start(() => router.replace(buildUrl())), 700);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, type, status, client, from, to, min, max, sort, dir]);
@@ -73,7 +73,7 @@ export function DocumentsFilters({ clients = [], lockedType }: { clients?: { id:
   const lbl = "mb-1 block text-xs font-medium text-slate-500";
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); start(() => router.push(buildUrl())); }} className="mb-5">
+    <form onSubmit={(e) => { e.preventDefault(); start(() => router.replace(buildUrl())); }} className="mb-5">
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[220px] flex-1">
           <input className={inp + " w-full pl-9 pr-9"} placeholder="Search client or number…" value={q} onChange={(e) => setQ(e.target.value)} />
