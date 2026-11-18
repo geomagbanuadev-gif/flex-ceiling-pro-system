@@ -73,6 +73,7 @@ create table if not exists documents (
   status         text default 'draft',
   payment_terms  text,
   validity_days  int,
+  execution_days int,                    -- quotation: promised working days
   subtotal       numeric default 0,
   discount       numeric default 0,
   vat_rate       numeric default 5,

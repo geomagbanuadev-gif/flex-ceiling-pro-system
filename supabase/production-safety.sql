@@ -8,6 +8,7 @@ alter table documents add column if not exists supplier_snapshot jsonb;
 alter table documents add column if not exists project_id uuid references projects on delete set null;
 alter table documents add column if not exists due_date date;
 alter table documents add column if not exists applies_to_invoice_id uuid references documents on delete set null;
+alter table documents add column if not exists execution_days int;
 
 -- Preserve old duplicate links before unlinking only the older draft copies. No
 -- document is deleted, and the archived source relationship remains auditable.

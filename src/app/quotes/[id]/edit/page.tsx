@@ -82,6 +82,7 @@ export default async function EditDocumentPage(props: PageProps<"/quotes/[id]/ed
     reference: doc.reference ?? "",
     paymentTerms: doc.payment_terms ?? "",
     validityDays: doc.validity_days ?? 7,
+    executionDays: doc.execution_days ?? null,
     vatRate: doc.vat_rate ?? 5,
     discount: doc.discount ?? 0,
     advanceAmount: doc.advance_amount ?? 0,

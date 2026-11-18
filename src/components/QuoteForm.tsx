@@ -39,6 +39,7 @@ export type QuoteInitial = {
   reference: string;
   paymentTerms: string;
   validityDays: number;
+  executionDays: number | null;
   vatRate: number;
   discount: number;
   advanceAmount: number;
@@ -79,6 +80,7 @@ export function QuoteForm({
   const [reference, setReference] = useState(initial?.reference ?? "");
   const [paymentTerms, setPaymentTerms] = useState(initial?.paymentTerms ?? defaults.paymentTerms);
   const [validityDays, setValidityDays] = useState(initial?.validityDays ?? defaults.validityDays);
+  const [executionDays, setExecutionDays] = useState(initial?.executionDays == null ? "" : String(initial.executionDays));
   const [vatRate, setVatRate] = useState(initial?.vatRate ?? defaults.vatRate);
   const [discount, setDiscount] = useState(String(initial?.discount ?? ""));
   const [advance, setAdvance] = useState(String(initial?.advanceAmount ?? ""));
@@ -157,6 +159,7 @@ export function QuoteForm({
       reference,
       paymentTerms,
       validityDays: Number(validityDays) || 0,
+      executionDays: !isInvoice && !isProforma && executionDays ? Number(executionDays) : null,
       notes,
       vatRate: Number(vatRate) || 0,
       discount: totals.discount,
@@ -322,6 +325,7 @@ export function QuoteForm({
           <div>
             <label className={lbl}>Quote validity (days)</label>
             <input type="number" className={inp + " mt-1.5"} value={validityDays} onChange={(e) => setValidityDays(Number(e.target.value))} />
+            {!isInvoice && !isProforma && <><label className={lbl + " mt-4 block"}>Work completion (working days)</label><input type="number" min="1" step="1" className={inp + " mt-1.5"} value={executionDays} onChange={(e) => setExecutionDays(e.target.value)} placeholder="Enter number of working days" /></>}
             <label className={lbl + " mt-4 block"}>Note — printed in red on the document</label>
             <textarea rows={2} className={inp + " mt-1.5"} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Powder-coated color is subject to client's final approval before fabrication." />
           </div>

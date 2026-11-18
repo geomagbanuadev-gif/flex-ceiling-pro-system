@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { amountInWords } from "@/utils/amountInWords";
 import { nextDocNumber } from "@/utils/docNumber";
-import { statusesFor, allowedStatusTransitions, quoteStatusAfterInvoiceConversion, prefixFor, wordsForType, advanceForType, defaultAdvance, invoiceAmountsForSource, dependentDocumentDeleteError, regenerationBlockedMessage, canModifyDocument, type DocType } from "@/utils/docRules";
+import { statusesFor, allowedStatusTransitions, quoteStatusAfterInvoiceConversion, prefixFor, wordsForType, advanceForType, defaultAdvance, invoiceAmountsForSource, dependentDocumentDeleteError, regenerationBlockedMessage, canModifyDocument, validExecutionDays, type DocType } from "@/utils/docRules";
 import { getProfile, canSeeInvoices, canSeeReceipts } from "@/utils/profile";
 
 /** Next sequential document number for a type, e.g. "PF-0007". */
@@ -33,7 +33,7 @@ function snapshotOf(s: Record<string, unknown> | null | undefined) {
   return out;
 }
 
-const OPTIONAL_DOCUMENT_COLUMNS = ["supplier_snapshot", "advance_amount", "payment_method"];
+const OPTIONAL_DOCUMENT_COLUMNS = ["supplier_snapshot", "advance_amount", "payment_method", "execution_days"];
 
 // Older production databases may not have every optional document column yet.
 async function insertDoc(
@@ -101,6 +101,7 @@ export type QuotePayload = {
   reference: string;
   paymentTerms: string;
   validityDays: number;
+  executionDays?: number | null;
   notes: string;
   vatRate: number;
   discount: number;
@@ -126,6 +127,7 @@ export async function saveQuote(p: QuotePayload): Promise<SaveDocumentResult> {
   if (!user) throw new Error("Not authenticated");
 
   const type = p.type ?? "quote";
+  if (type === "quote" && !validExecutionDays(p.executionDays)) return { ok: false, error: "Work completion must be a positive whole number of days." };
   const number = p.number.trim();
   if (!number) return { ok: false, error: "Document number is required." };
   let duplicateNumberQuery = supabase.from("documents").select("id").eq("type", type).eq("number", number);
@@ -185,6 +187,7 @@ export async function saveQuote(p: QuotePayload): Promise<SaveDocumentResult> {
     reference: p.reference || null,
     payment_terms: p.paymentTerms || null,
     validity_days: p.validityDays || null,
+    execution_days: type === "quote" ? p.executionDays || null : null,
     subtotal: p.subtotal,
     discount: p.discount || 0,
     vat_rate: p.vatRate,
@@ -409,6 +412,7 @@ export async function duplicateDocument(docId: string) {
     reference: src.reference,
     payment_terms: src.payment_terms,
     validity_days: src.validity_days,
+    execution_days: type === "quote" ? src.execution_days : null,
     subtotal: src.subtotal,
     discount: src.discount,
     vat_rate: src.vat_rate,

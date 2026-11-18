@@ -54,6 +54,9 @@ export const wordsForType = (type: string, grandTotal: number | null | undefined
 export const advanceForType = (type: string, advance: number | null | undefined): number =>
   type === "proforma" ? Number(advance) || 0 : 0;
 
+export const validExecutionDays = (value: number | null | undefined) =>
+  value == null || (Number.isInteger(value) && value > 0);
+
 /** Default advance when generating a pro forma from a quote (50% of the total). */
 export const defaultAdvance = (grandTotal: number | null | undefined): number =>
   +((Number(grandTotal) || 0) * 0.5).toFixed(2);

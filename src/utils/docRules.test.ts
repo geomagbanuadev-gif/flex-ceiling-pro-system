@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { statusesFor, quoteStatusAfterInvoiceConversion, prefixFor, wordsForType, advanceForType, defaultAdvance, paymentAcknowledgment, invoiceAmountsForSource, dependentDocumentDeleteError, canRegenerateGeneratedDocument, regenerationBlockedMessage, allowedStatusTransitions, canModifyDocument } from "./docRules";
+import { statusesFor, quoteStatusAfterInvoiceConversion, prefixFor, wordsForType, advanceForType, defaultAdvance, paymentAcknowledgment, invoiceAmountsForSource, dependentDocumentDeleteError, canRegenerateGeneratedDocument, regenerationBlockedMessage, allowedStatusTransitions, canModifyDocument, validExecutionDays } from "./docRules";
 
 describe("statusesFor", () => {
   it("allows ongoing only for quotes and pro formas", () => {
@@ -84,6 +84,15 @@ describe("advanceForType", () => {
     expect(advanceForType("invoice", 4646.25)).toBe(0);
     expect(advanceForType("quote", 4646.25)).toBe(0);
     expect(advanceForType("proforma", null)).toBe(0);
+  });
+});
+
+describe("validExecutionDays", () => {
+  it("accepts a blank or positive whole number", () => {
+    expect(validExecutionDays(null)).toBe(true);
+    expect(validExecutionDays(14)).toBe(true);
+    expect(validExecutionDays(0)).toBe(false);
+    expect(validExecutionDays(2.5)).toBe(false);
   });
 });
 

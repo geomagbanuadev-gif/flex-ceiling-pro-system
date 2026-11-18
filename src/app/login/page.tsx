@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 
@@ -10,6 +11,17 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const hash = new URLSearchParams(window.location.hash.slice(1));
+    if (hash.get("type") === "recovery") {
+      window.location.replace(`/auth/reset-password${window.location.hash}`);
+      return;
+    }
+    if (window.location.pathname === "/") {
+      window.history.replaceState(null, "", "/login");
+    }
+  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -66,6 +78,7 @@ export default function LoginPage() {
               {busy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />}
               {busy ? "Signing in…" : "Sign in"}
             </button>
+            <Link href="/auth/forgot-password" className="block text-center text-sm font-medium text-slate-500 hover:text-navy">Forgot password?</Link>
           </form>
         </div>
         <p className="mt-6 text-center text-xs text-white/35">Internal access only · authorized users</p>
